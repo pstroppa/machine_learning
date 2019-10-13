@@ -29,7 +29,6 @@ filename='data/wine_red.csv'
 
 wine_dataframe = pd.read_csv(filename, sep =";")
 samples = wine_dataframe["quality"] 
-count=-1                            
 classes = [str(i).zfill(1) for i in range(0,11)]
 values=[0]*11
 
