@@ -37,7 +37,7 @@ for elem in samples:
         values[int(elem)]=values[int(elem)]+1
 
 source = ColumnDataSource(data=dict(classes=classes, counts=values, color=Spectral11))
-p = figure(x_range=classes, plot_height=500, title="Distribution Mushrooms", x_axis_label=('Quality Value'),y_axis_label=('Number of samples'), toolbar_location=None)
+p = figure(x_range=classes, plot_height=500, title="Distribution Wine Quality", x_axis_label=('Quality Value'),y_axis_label=('Number of samples'), toolbar_location=None)
 p.vbar(x='classes', top='counts', width=0.9, color='color', legend="classes", source=source)
 
 p.xgrid.grid_line_color = "white"
