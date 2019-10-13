@@ -7,28 +7,26 @@
 .. moduleeditor: Peter Stroppa, Lucas Unterberger
 
 """
-
 #imported for compatibility of python 2.x and 3.x
 from __future__ import unicode_literals
 from future.builtins import map  
-#impoorts Counter class
+#imports Counter class
 from collections import Counter
 #imports chain generator objects
 from itertools import chain
-import csv
-from math import log, fsum
-import numpy as np
-import matplotlib.pyplot as plt
+#used for data manipulation and DataFrame datatype
+import pandas as pd
+#bokeh is used for nice plotting
+from bokeh.io import export_png
+from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, Label, Range1d
+from bokeh.palettes import Spectral6
 
 filename='data/mushrooms.csv'
+classes = ['edible','poisonous']
 
-reader=csv.reader(open(filename))                           
-samples=[]                     #empty list
-for row in reader:
-        instance=row[0]  #string containing one sample
-        attr=instance.split(";")
-        samples.append(attr)
-        
+mushroom_dataframe = pd.read_csv(filename, sep =",")
+samples = mushroom_dataframe["p"]  
 
 values=[0,0]
 
@@ -38,11 +36,36 @@ for elem in samples:
     else:
         values[1]=values[1]+1
 
-plt.annotate(str(values[0]), (-0.06,3900))    
-plt.annotate(str(values[1]), (0.94,3600))
-plt.bar(['edible','poisonous'], values)
-#plt.axis([-0.5,10.5,0,750])
-plt.title('Distribution Mushrooms')
-plt.ylabel('Number of samples')
-plt.xlabel('Edibility')
-plt.savefig('distribution_mushrooms.png')
+source = ColumnDataSource(data=dict(classes=classes, counts=values, color=Spectral6[0:2]))
+p = figure(x_range=classes, plot_height=500, title="Distribution Mushrooms", x_axis_label=('Edibility'),y_axis_label=('Number of samples'), toolbar_location=None)
+p.vbar(x='classes', top='counts', width=0.9, color='color', legend="classes", source=source)
+
+p.xgrid.grid_line_color = "white"
+p.y_range.start = 0
+
+p.title_location = "above"
+p.title.align = 'center'
+p.title.text_font_size = '16pt'
+
+p.xaxis.axis_label_text_font_size = "16pt"
+p.yaxis.axis_label_text_font_size = "16pt" 
+p.legend.label_text_font_size = "16pt"
+p.y_range=Range1d(0,5000)
+
+p.legend.location = "top_left"
+p.legend.orientation = "horizontal"
+p.legend.location = "top_center"
+
+citation1 = Label(x=110, y=350, x_units='screen', y_units='screen', text=str(values[0]), text_color = "white")
+citation2 = Label(x=360, y=320, x_units='screen', y_units='screen', text=str(values[1]), text_color = "white")
+
+p.add_layout(citation1)
+p.add_layout(citation2)
+
+export_png(p, filename="pics/distribution_mushrooms.png")
+
+
+
+
+
+
