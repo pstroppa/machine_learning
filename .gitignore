@@ -529,3 +529,7 @@ $RECYCLE.BIN/
 *.lnk
 
 # End of https://www.gitignore.io/api/vim,latex,linux,macos,emacs,python,windows,notepadpp,visualstudiocode
+
+# json file
+
+*.json
