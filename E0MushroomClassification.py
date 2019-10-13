@@ -1,21 +1,29 @@
-"""Mushrooms"""
+"""
+.. module:: E0MushroomClassification.py
+    :platform:  Windows
+    :synopsis: this file creates histograms for the mushrooms.csv attribute and classifications
 
+.. moduleauthor: Sophie Rain
+.. moduleeditor: Peter Stroppa, Lucas Unterberger
+
+"""
+
+#imported for compatibility of python 2.x and 3.x
 from __future__ import unicode_literals
 from future.builtins import map  
+#impoorts Counter class
 from collections import Counter
+#imports chain generator objects
 from itertools import chain
 import csv
-from math import log
+from math import log, fsum
 import numpy as np
-from math import fsum
 import matplotlib.pyplot as plt
 
 filename='data/mushrooms.csv'
 
 reader=csv.reader(open(filename))                           
-samples=[]                     #empty lsit
-
-
+samples=[]                     #empty list
 for row in reader:
         instance=row[0]  #string containing one sample
         attr=instance.split(";")
