@@ -1,5 +1,5 @@
 """
-.. module:: colored_attributes.py
+.. module:: EOWineAttributs_colored.py
     :platform:  Windows
     :synopsis: this file creates jitter plot for the wine_red.csv attributes
 
