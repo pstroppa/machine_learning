@@ -22,7 +22,7 @@ from bokeh.plotting import figure
 from bokeh.models import ColumnDataSource, Label, Range1d
 from bokeh.palettes import Spectral6
 
-filename='data/mushrooms.csv'
+filename='data/mushroom.csv'
 classes = ['edible','poisonous']
 
 mushroom_dataframe = pd.read_csv(filename, sep =",")
@@ -65,7 +65,7 @@ citation2 = Label(x=360, y=265, x_units='screen', y_units='screen', text=str(val
 p.add_layout(citation1)
 p.add_layout(citation2)
 
-export_png(p, filename="pics/distribution_mushrooms.png")
+export_png(p, filename="data/distribution_mushrooms.png")
 
 
 

@@ -8,11 +8,14 @@
 
 """
 import numpy as np
-
-from bokeh.io import show
-from bokeh.models import ColumnDataSource, LinearColorMapper, ColorBar
-from bokeh.palettes import Viridis3
+import pandas as pd
+from bokeh.io import export_png
+from bokeh.models import ColumnDataSource, LinearColorMapper, ColorBar, Label, Range1d
+from bokeh.palettes import Viridis11
 from bokeh.plotting import figure
+from bokeh.transform import jitter
+from bokeh.layouts import gridplot
+from math import pi
 
 filename='data/wine_red.csv'
 
@@ -72,4 +75,4 @@ for i in range(wine_dataframe_attributes.shape[1]):
         figure_dict["figures"][attributes[i]].x_range = Range1d(min(data_plot[attributes[i]])-0.5, max(data_plot[attributes[i]])+0.5)
 
 graphic = gridplot([figure_dict["figures"][attributes[i]] for i in range(wine_dataframe_attributes.shape[1])], ncols=4, plot_width=300, plot_height=300, toolbar_location=None)
-export_png(graphic, filename="pics/attributes_winequality_bunt.png")
+export_png(graphic, filename="data/attributes_winequality_bunt.png")
