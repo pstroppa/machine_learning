@@ -7,141 +7,77 @@
 .. moduleeditor: Sophie Rain, Lucas Unterberger
 
 """
+#%%
+#import standart packages
 import numpy as np
 from math import pi
 import datetime as dt
 import pandas as pd
+#import plotting packages
 from bokeh.io import export_png
-from bokeh.models import ColumnDataSource, LinearColorMapper, ColorBar, Label, Range1d
-from bokeh.palettes import Viridis11
-from bokeh.plotting import figure
+from bokeh.models import ColumnDataSource, Label, Range1d
+from bokeh.plotting import figure, output_file, show
 from bokeh.transform import jitter
-from bokeh.layouts import gridplot
+#import machine learning packages
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 
-bike_train_df = pd.read_csv("E1/data/bikeSharing_train.csv", sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
-bike_test_df = pd.read_csv("E1/data/bikeSharing_test.csv", sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+bike_train_df = pd.read_csv("E1/data/bikeSharing_train.csv", sep =",",                                                                          lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+bike_test_df = pd.read_csv("E1/data/bikeSharing_test.csv", sep =",", lineterminator="\n",                                                      encoding="utf-8", error_bad_lines=False)
 
 bike_train_df = bike_train_df.set_index("id", drop=True)
-bike_train_df = bike_train_df.sort_values(by="id")
+bike_test_df = bike_test_df.set_index("id", drop=True)
+#bike_train_df = bike_train_df.sort_values(by="id")
 ################################################################
-## analyse DataFrame for possible preprocessing
-
-# possible outlier:
-#weathersit: 26.1.2011  16h
- #           10.1.2012 18h
-
-
-#atemp:       22.07.2011 14h
-#             17.8.2012  0-18h
-#             04.01.2011 4h
-#             12.02.2011 4h
-
-#hum:         10.03.2011
-
-#windspeed    03.07.2011 17h
-#             27.08.2011 17h
-
-grouped = {}
-for col in bike_train_df.columns.to_list():
-    grouped[col]=bike_train_df[col].groupby(bike_train_df[col]).count()
-
-#attributes = bike_train_df.columns.to_list()
 
 split = bike_train_df["dteday"].iloc[0].split("-") 
-loc = [dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]),hour=int(bike_train_df["hr"].iloc[0]))]
+loc = [dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]), 
+                   hour=int(bike_train_df["hr"].iloc[0]))]
 for i in range(1,bike_train_df.shape[0]):
     split = bike_train_df["dteday"].iloc[i].split("-") 
-    loc.append(dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]),hour=int(bike_train_df["hr"].iloc[i])))
+    loc.append(dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]),
+                           hour=int(bike_train_df["hr"].iloc[i])))
 bike_train_df["date"]=loc
-bike_attributes=bike_train_df.drop(columns="cnt")
-attributes = ["date", "weathersit", "temp", "atemp", "hum", "windspeed"]
-################################################################
-## mehrfach
-################################################################
 
-for attribute in attributes:    
-    source = ColumnDataSource(data=dict(x=bike_train_df[attribute], y=bike_train_df["cnt"]))
-    output_file(attribute +".html")
-    p = figure(plot_width=900, plot_height=900, title=attribute, x_axis_label=('Date'),y_axis_label=('Value'))#, toolbar_location=None) x_axis_type="datetime"
-    p.circle(x="x", y="y",  source=source, alpha=0.3)
-    p.xgrid.grid_line_color = "white"
-    p.title_location = "above"
-    p.title.align = 'center'
-    p.title.text_font_size = '16pt'
-    p.xaxis.axis_label_text_font_size = "16pt"
-    p.yaxis.axis_label_text_font_size = "16pt" 
-    p.xaxis.major_label_text_font_size = "14pt"
-    show(p)
+bike_train_attributes=bike_train_df.drop(columns=["cnt", "date", "dteday"])
+bike_test_attributes=bike_test_df.drop(columns=["dteday"])
 
+#attributes = ["date", "weathersit", "temp", "atemp", "hum", "windspeed"]
 ################################################################
-## einzeln
-################################################################
-
-
+# machine lerarning part
 ####################################################################
-#Ziel: plot attribute vs count. (attribute sort)
 
-#explantation what is happening:
-#random x values
-x=np.random.randn(10,1)
-#y is the funktion 2*x+3 + some random noise
-y=2*x+3 +0.5*np.random.rand(10,1)
-plt.scatter(x,y)
-#fit modell so that it finds a linear function that suits y closest possible
-regr.fit(x,y)
-#coef_ should ideally return 2 since we are looking for the closest function to y -> which is of course y
-regr.coef_
-# incerept is d, where y=k*x+d -> hence it should be 3
-regr.intercept_
-# now i want to know what the value for 20 would be for a our approximated function
-regr.predict([[20]])
-x_test = np.linspace(-3,3) 
-
-####################################################################
-#machine lerarning part
-
-
-bike_attributes=bike_train_df.drop(columns="cnt")
-
+corr=bike_train_df.corr()
+corr["cnt"]
 value = bike_train_df["cnt"].values[:,np.newaxis]
 # Use only one feature
-train_attribute=bike_train_df["temp"].values[:,np.newaxis]
-test_attribute=bike_test_df["temp"].values[:,np.newaxis]
+train_attribute = bike_train_attributes["temp"].values[:,np.newaxis]
+#train_attribute=bike_train_attributes.values
+test_attribute= bike_test_attributes["temp"].values[:,np.newaxis]
+#test_attribute=bike_test_attributes.values
+
 # Create linear regression object
 regr = linear_model.LinearRegression()
 
 # Train the model using the training sets
 regr.fit(train_attribute, value)
 # Make predictions using the testing set
+#train_pred = regr.predict(train_attribute)
 test_pred = regr.predict(test_attribute)
-regr.intercept_
-# The coefficients
-print('Coefficients: \n', regr.coef_)
-# The mean squared error
-print("Mean squared error: %.2f"
-      % mean_squared_error(value, test_pred))
-# Explained variance score: 1 is perfect prediction
-print('Variance score: %.2f' % r2_score(value[:8689], test_pred))
 
-# Plot outputs
-plt.scatter(bike_train_df["temp"], bike_train_df["cnt"],  color='white')
-plt.plot(test_attribute, test_pred, color='blue', linewidth=3)
-
-plt.xticks(())
-plt.yticks(())
-
-plt.show()
+regr.score(train_attribute[:-1],test_pred)
 
 flat_test_attribute = [item for sublist in test_attribute for item in sublist]
 flat_prediction = [item for sublist in test_attribute for item in sublist]
 
+# Plot outputs
 source = ColumnDataSource(data=dict(x=bike_train_df["temp"], y=bike_train_df["cnt"]))
 output_file("temp" +".html")
-p = figure(plot_width=800, plot_height=800, title="date-jitter", x_axis_label=('Temp-normalized'),y_axis_label=('Value'))#, toolbar_location=None)
+p = figure(plot_width=800, plot_height=800, title="date-jitter", x_axis_label=('Temp-normalized'),
+           y_axis_label=('Value'))#, toolbar_location=None)
 p.circle(x="x", y="y", source=source, alpha=0.3)
-p.line(x=flat_test_attribute, y=[x * np.asscalar(regr.coef_) + np.asscalar(regr.intercept_) for x in flat_test_attribute], color='blue', line_width=3)
+p.line(x=flat_test_attribute, y=[x * np.asscalar(regr.coef_) + np.asscalar(regr.intercept_)
+ for x in flat_test_attribute], color='blue', line_width=3)
 p.xgrid.grid_line_color = "white"
 p.title_location = "above"
 p.title.align = 'center'
@@ -151,3 +87,14 @@ p.yaxis.axis_label_text_font_size = "16pt"
 p.xaxis.major_label_text_font_size = "14pt"
 show(p)
 
+# The coefficients
+print('Coefficients: \n', regr.coef_)
+# The mean squared error
+print("Mean squared error: %.2f" % mean_squared_error(value, test_pred))
+# Explained variance score: 1 is perfect prediction
+print('Variance score: %.2f' % r2_score(value, test_pred))
+
+
+
+
+# %%
