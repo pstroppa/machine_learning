@@ -53,8 +53,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     X1=X_train.copy()
 
     scaler.fit(X1)
-    X2= scaler.transform(X1)
-     #X2 minmax scaling
+    X2= scaler.transform(X1) #X2 normalise scaling
     
     minmax.fit(X1)
     X3 = minmax.transform(X1) #X3 minmax scaling
@@ -74,37 +73,42 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     X4_test=X4_test.drop(columns=["X6"])
     X4_test = scaler2.transform(X4_test)
 
-##########################################################
+######################################################################
+##  applying different methodes:
+######################################################################
+    #lin reg:
 
-    #lin reg
-    #lin_reg = linear_model.LinearRegression()
-  ###########################
+    lin_reg = linear_model.LinearRegression()
+######################################################################
     #knn 
-    k=10
-    weigh ="uniform"
-    knn=neighbors.KNeighborsRegressor(k, weights=weigh)
-    y_test=np.array(y_test)  
- #####################
+    #k=10
+    #weigh ="uniform"
+    #knn=neighbors.KNeighborsRegressor(k, weights=weigh)
+    #y_test=np.array(y_test)  
+######################################################################
     #lasso
     
+######################################################################
     
     #tree
 
 
 
-    #select methode
-    methode = knn # 
-##########################################################
-
-    #evaluation *5    
+#select methode
+    methode = lin_reg #knn , lasso_reg, regr_tree
+######################################################################
+##  evaluation for all 5 measures (see pptx numeric_values: Slide 36):
+######################################################################
+    #fit X_train (moreless X1) with corresponding goal values y_train
     methode.fit(X1,y_train)    
     y1 = np.array(methode.predict(X_test))       
     #y1-y4, y_test
     
+    # y1 is result of prediction y_test is "faked" goal value of prediction
     mittel = y_test.mean()
     mlist = [mittel for i in range(len(y_test))]
-    rmse1 = sqrt(mean_squared_error(y1-y_test,y1-y_test))
-    mae1 = mean_absolute_error(y1,y_test)
+    rmse1 = sqrt(mean_squared_error(y_test,y1))
+    mae1 = mean_absolute_error(y_test,y1)
     rrse1 = sqrt(sum(np.multiply(y1-y_test,y1-y_test))/sum(np.multiply(y_test-mlist,y_test-mlist)))
     rae1 = sum(abs(y1-y_test))/sum(abs(y_test-mlist))
     pbar1 = [y1.mean() for i in range(len(y1))]
@@ -117,8 +121,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     methode.fit(X2,y_train)
     y2 = np.array(methode.predict(X2_test))  
     
-    rmse2 = sqrt(mean_squared_error(y2-y_test,y2-y_test))
-    mae2 = mean_absolute_error(y2,y_test)
+    rmse2 = sqrt(mean_squared_error(y_test,y2))
+    mae2 = mean_absolute_error(y_test,y2)
     rrse2 = sqrt(sum(np.multiply(y2-y_test,y2-y_test))/sum(np.multiply(y_test-mlist,y_test-mlist)))
     rae2 = sum(abs(y2-y_test))/sum(abs(y_test-mlist))
     pbar2 = [y2.mean() for i in range(len(y2))]
@@ -129,8 +133,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     methode.fit(X3,y_train)
     y3 = np.array(methode.predict(X3_test))
     
-    rmse3=  sqrt(mean_squared_error(y3-y_test,y3-y_test))
-    mae3 = mean_absolute_error(y3,y_test)
+    rmse3=  sqrt(mean_squared_error(y_test,y3))
+    mae3 = mean_absolute_error(y_test,y3)
     rrse3 = sqrt(sum(np.multiply(y3-y_test,y3-y_test))/sum(np.multiply(y_test-mlist,y_test-mlist)))
     rae3 = sum(abs(y3-y_test))/sum(abs(y_test-mlist))
     pbar3 = [y3.mean() for i in range(len(y3))]
@@ -141,8 +145,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     methode.fit(X4,y_train)
     y4 = np.array(methode.predict(X4_test))
 
-    rmse4 = sqrt(mean_squared_error(y4-y_test,y4-y_test))
-    mae4 = mean_absolute_error(y4,y_test)
+    rmse4 = sqrt(mean_squared_error(y_test,y4))
+    mae4 = mean_absolute_error(y_test,y4)
     rrse4 = sqrt(sum(np.multiply(y4-y_test,y4-y_test))/sum(np.multiply(y_test-mlist,y_test-mlist)))
     rae4 = sum(abs(y4-y_test))/sum(abs(y_test-mlist))
     pbar4 = [y4.mean() for i in range(len(y4))]
@@ -154,34 +158,34 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     #print(entry) 
     win=min(entry)
     lose=max(entry)
-    print(win, entry.index(win)+1)       
+    print("rmse: "+"{:7.3f}".format(win), "   Preprocessing winner: ", entry.index(win)+1)       
     counter_win[entry.index(win)] +=1 
     counter_lose[entry.index(lose)] +=1 
 
     entry2=[rrse1, rrse2,  rrse3, rrse4]  
     #print(entry) 
     win2=min(entry2)
-    print(win2, entry2.index(win2)+1)
+    print("rrse: "+"{:7.3f}".format(win2), "   Preprocessing winner: ", entry2.index(win2)+1)
 
     entry3=[mae1, mae2, mae3, mae4 ]  
     #print(entry) 
     win3=min(entry3)
     lose3=max(entry3)
-    print(win3, entry3.index(win3)+1)
+    print("mae: "+"{:8.3f}".format(win3), "   Preprocessing winner: ", entry3.index(win3)+1)
     counter_win[entry3.index(win3)] +=1 
     counter_lose[entry3.index(lose3)] +=1 
 
     entry4=[rae1, rae2,  rae3, rae4 ]  
     #print(entry) 
     win4=min(entry4)
-    print(win4, entry4.index(win4)+1)
+    print("rae: "+"{:8.3f}".format(win4), "   Preprocessing winner: ", entry4.index(win4)+1)
 
 
     entry5=[cor1, cor2,  cor3, cor4 ]  
     #print(entry) 
     win5=max(entry5)
     lose5=min(entry5)
-    print(win5, entry5.index(win5)+1)
+    print("cor: "+"{:8.3f}".format(win5), "   Preprocessing winner: ", entry5.index(win5)+1)
     counter_win[entry5.index(win5)] +=1 
     counter_lose[entry5.index(lose5)] +=1 
 
