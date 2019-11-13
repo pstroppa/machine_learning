@@ -10,6 +10,10 @@ Created on Sat Nov  9 17:10:42 2019
 #welches preprocessing am besten? fuer weights=uniform und k=30 kommt 4 sehr häufig vor,
 # 1 und 2 gleichermaßen häufig und 3 sehr selten
 #unterschiedliche meastures?
+#correlation matrix--unter 0.1 raus, 
+#minmax schlecht weil viele 0-1 werte, die gehen überdurchschnittlich stark ein
+#handmade ordinal schlägt onehot--> intuition, 
+#duch neue feature selection gewinnt fast immer 4
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -55,46 +59,101 @@ for i in range(5): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     enc = ColumnTransformer([("wtf", OneHotEncoder(handle_unknown='ignore'), [0,1,3,4,5,8,9,10,11,15,16,17,18,19,20,21,22])])
     enc2 = ColumnTransformer([("wtf", OneHotEncoder(handle_unknown='ignore'), [0,1,3,4,7,8,11,12,13,14,15,16])])
 
-    #enc = OneHotEncoder( categorical_features=cat)
     min_max= preprocessing.MinMaxScaler()
     minmax2 = preprocessing.MinMaxScaler()
+    scaler = preprocessing.StandardScaler()
+    scaler2 = preprocessing.StandardScaler()
+    
     enc.fit(X_train)
-    #enc2 = OneHotEncoder(categorical_features=cat)
-
     X1 = enc.transform(X_train)  #X1 minimum effort encoding
-    X2 = preprocessing.scale(X1) #X2 zscore scaling
+    scaler.fit(X1)
+    X2 = scaler.transform(X1) #X2 zscore scaling
     min_max.fit(X1)
     X3 = min_max.transform(X1) #X3 minmax scaling
-    X4 = X_train.copy() #delete irrel attributes + minmax scaling
-    del X4['famsize']
-    del X4['reason']
-    del X4['traveltime']
-    del X4['romantic']
-    del X4['Walc']
-    del X4['goout']
-    del X4['activities']
-    del X4['Mjob']
-    enc2.fit(X4)
-    X4=enc2.transform(X4)
-    minmax2.fit(X4)
-    X4 = minmax2.transform(X4)
+    
+    X4=X_train.copy()
+    X4=X4.drop(columns=['school','famsize','Pstatus','Fjob','reason','guardian','schoolsup','famsup','activities','famrel','Dalc','Walc','health','absences'])
+    
+    X4=X4.replace(to_replace='GP',value=1)
+    X4=X4.replace(to_replace='MS',value=0)
+    
+    X4=X4.replace(to_replace='F',value=1)
+    X4=X4.replace(to_replace='M',value=0)
+    
+    X4=X4.replace(to_replace='LE3',value=1)
+    X4=X4.replace(to_replace='GT3',value=0)
+    
+    X4=X4.replace(to_replace='T',value=1)
+    X4=X4.replace(to_replace='A',value=0)
+    
+    X4=X4.replace(to_replace='at_home',value=0)
+    X4=X4.replace(to_replace='services',value=1)
+    X4=X4.replace(to_replace='other',value=2)
+    X4=X4.replace(to_replace='teacher',value=3)
+    X4=X4.replace(to_replace='health',value=4)
+    
+    X4=X4.replace(to_replace='reputation',value=1)
+    X4=X4.replace(to_replace='home',value=0)
+    X4=X4.replace(to_replace='course',value=2)
+    
+    X4=X4.replace(to_replace='mother',value=1)
+    X4=X4.replace(to_replace='father',value=1)
+    
+    X4=X4.replace(to_replace='yes',value=1)
+    X4=X4.replace(to_replace='no',value=0)
+    
+    X4=X4.replace(to_replace='U',value=1)
+    X4=X4.replace(to_replace='R',value=0)
+    
+    scaler2.fit(X4)
+    X4=scaler2.transform(X4)    
+    
 
     X4_test = X_test.copy()
+    
+    X4_test=X_test.copy()
+    X4_test=X4_test.drop(columns=['school','famsize','Pstatus','Fjob','reason','guardian','schoolsup','famsup','activities','famrel','Dalc','Walc','health','absences'])
+    
+    X4_test=X4_test.replace(to_replace='GP',value=1)
+    X4_test=X4_test.replace(to_replace='MS',value=0)
+    
+    X4_test=X4_test.replace(to_replace='F',value=1)
+    X4_test=X4_test.replace(to_replace='M',value=0)
+    
+    X4_test=X4_test.replace(to_replace='LE3',value=1)
+    X4_test=X4_test.replace(to_replace='GT3',value=0)
+    
+    X4_test=X4_test.replace(to_replace='T',value=1)
+    X4_test=X4_test.replace(to_replace='A',value=0)
+    
+    X4_test=X4_test.replace(to_replace='at_home',value=0)
+    X4_test=X4_test.replace(to_replace='services',value=1)
+    X4_test=X4_test.replace(to_replace='other',value=2)
+    X4_test=X4_test.replace(to_replace='teacher',value=3)
+    X4_test=X4_test.replace(to_replace='health',value=4)
+    
+    X4_test=X4_test.replace(to_replace='reputation',value=1)
+    X4_test=X4_test.replace(to_replace='home',value=0)
+    X4_test=X4_test.replace(to_replace='course',value=2)
+    
+    X4_test=X4_test.replace(to_replace='mother',value=1)
+    X4_test=X4_test.replace(to_replace='father',value=1)
+    
+    X4_test=X4_test.replace(to_replace='yes',value=1)
+    X4_test=X4_test.replace(to_replace='no',value=0)
+    
+    X4_test=X4_test.replace(to_replace='U',value=1)
+    X4_test=X4_test.replace(to_replace='R',value=0)
+    
+    #X4_test=enc.transform(X4_test)
+    X4_test=scaler2.transform(X4_test)
+    
+    
+    
     X_test=enc.transform(X_test)  #test data zu X1
-    X_zscore=preprocessing.scale(X_test) #test data zu X2
+    X_zscore=scaler.transform(X_test) #test data zu X2
     X_minmax=min_max.transform(X_test) #test data zu X3
     
- #test data zu X4
-    del X4_test['famsize']
-    del X4_test['reason']
-    del X4_test['traveltime']
-    del X4_test['romantic']
-    del X4_test['Walc']
-    del X4_test['goout']
-    del X4_test['activities']
-    del X4_test['Mjob']
-    X4_test = enc2.transform(X4_test)
-    X4_test = minmax2.transform(X4_test)
 
     #knn mit k in [1,3,5,10]
     #for weigh in ['uniform','distance']:
@@ -109,6 +168,7 @@ for i in range(5): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     mittel=y_test.mean()
     mlist=[mittel for i in range(len(y_test))]
     
+    #evaluation *5    
     knn.fit(X1,y_train)
     y1 = np.array(knn.predict(X_test))        
     diff1=sqrt(sum(np.multiply(y1-y_test,y1-y_test)))/len(y_test)
@@ -121,7 +181,7 @@ for i in range(5): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     sa=sum((y_test-mlist)*(y_test-mlist))/(len(y_test)-1)
     cor1=spa1/sqrt(sp1*sa)
     
-    #evaluation *5
+
     knn.fit(X2,y_train)
     y2 = np.array(knn.predict(X_zscore))  
     diff2=sqrt(sum(np.multiply(y2-y_test,y2-y_test)))/len(y_test)
