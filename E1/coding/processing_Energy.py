@@ -18,10 +18,10 @@ from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
 
 
-filename='bikeSharing_train.csv'
+filename='energy.csv'
 
-bike_df = pd.read_csv("E1/data/" + filename, sep =",",                                                                          lineterminator="\n", encoding="utf-8",error_bad_lines=False)
-
+Energy_df = pd.read_csv("E1/data/" + filename, sep =";",                                                                          lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+Energy_df["X1"][0]
 bike_df = bike_df.set_index("id", drop=True)
 
             
