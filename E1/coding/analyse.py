@@ -47,21 +47,15 @@ grouped = {}
 for col in bike_train_df.columns.to_list():
     grouped[col]=bike_train_df[col].groupby(bike_train_df[col]).count()
 
-attributes = ["date", "weathersit", "temp", "atemp", "hum", "windspeed"]
+split = bike_train_df["dteday"].iloc[0].split("-") 
+loc = [dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]), 
+                   hour=int(bike_train_df["hr"].iloc[0]))]
+for i in range(1,bike_train_df.shape[0]):
+    split = bike_train_df["dteday"].iloc[i].split("-") 
+    loc.append(dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]),
+                           hour=int(bike_train_df["hr"].iloc[i])))
+bike_train_df["date"]=loc
 
-for attribute in attributes:    
-    source = ColumnDataSource(data=dict(x=bike_train_df[attribute], y=bike_train_df["cnt"]))
-    output_file(attribute +".html")
-    p = figure(plot_width=900, plot_height=900, title=attribute, x_axis_label=('Date'),y_axis_label=('Value'))#, toolbar_location=None) x_axis_type="datetime"
-    p.circle(x="x", y="y",  source=source, alpha=0.3)
-    p.xgrid.grid_line_color = "white"
-    p.title_location = "above"
-    p.title.align = 'center'
-    p.title.text_font_size = '16pt'
-    p.xaxis.axis_label_text_font_size = "16pt"
-    p.yaxis.axis_label_text_font_size = "16pt" 
-    p.xaxis.major_label_text_font_size = "14pt"
-    show(p)
 ####################################################################
 #Ziel: plot attribute vs count. (attribute sort)
 

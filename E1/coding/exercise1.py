@@ -30,17 +30,9 @@ bike_test_df = bike_test_df.set_index("id", drop=True)
 #bike_train_df = bike_train_df.sort_values(by="id")
 ################################################################
 
-split = bike_train_df["dteday"].iloc[0].split("-") 
-loc = [dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]), 
-                   hour=int(bike_train_df["hr"].iloc[0]))]
-for i in range(1,bike_train_df.shape[0]):
-    split = bike_train_df["dteday"].iloc[i].split("-") 
-    loc.append(dt.datetime(year=int(split[0]),month=int(split[1]),day=int(split[2]),
-                           hour=int(bike_train_df["hr"].iloc[i])))
-bike_train_df["date"]=loc
-
-bike_train_attributes=bike_train_df.drop(columns=["cnt", "date", "dteday"])
+bike_train_attributes=bike_train_df.drop(columns=["cnt", "dteday"])
 bike_test_attributes=bike_test_df.drop(columns=["dteday"])
+
 
 #attributes = ["date", "weathersit", "temp", "atemp", "hum", "windspeed"]
 ################################################################
@@ -48,7 +40,10 @@ bike_test_attributes=bike_test_df.drop(columns=["dteday"])
 ####################################################################
 
 corr=bike_train_df.corr()
-corr["cnt"]
+corr["cnt"].sort_values(ascending=False)
+
+df.replace(2,"test")
+replace(5,"test")
 value = bike_train_df["cnt"].values[:,np.newaxis]
 # Use only one feature
 train_attribute = bike_train_attributes["temp"].values[:,np.newaxis]
