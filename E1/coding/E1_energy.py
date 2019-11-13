@@ -1,60 +1,78 @@
 
 #%%
+"""
+.. module:: E1_energy.py
+    :platform:  Windows
+    :synopsis: preprocesses, and analyses energy.csv, all 4 methodes (treeRegression, LinearRegression, LassRegression         and K-nn) are performed at the end 5 measures for the prediction are being calculated.
+
+.. moduleauthor: Peter Stroppa, Sophie Rain, Lucas Unterberger
+
+.. Overview of the file:
+    1) comments
+    2) Input
+    3) general preprocessing
+    4) calculate Correlation
+    5) calculate prediction
+    6) preprocessing
+    7) applying methods
+    8) evaluation
+"""
 import numpy as np
 from math import sqrt
-import datetime as dt
 import pandas as pd
-#import plotting packages
-from bokeh.io import export_png
-from bokeh.models import ColumnDataSource, Label, Range1d
-from bokeh.plotting import figure, output_file, show
-from bokeh.transform import jitter
 #import machine learning packages
 from sklearn import linear_model, neighbors
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.preprocessing import OneHotEncoder
-from sklearn import preprocessing
+from sklearn import preprocessing, tree
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
 
+######################################################################
+#comments
 #energy assumptions:
 #   roof is negativ because volume is constant therefor big roof -> square -> better heating
 #                                                       small roof -> long rectangle -> worse heating
+######################################################################
+#Input
 
+filename="energy.csv"
+methode = "lasso"
+energy_df = pd.read_csv("E1/data/" + filename, sep =";", lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
-filename='energy.csv'
+######################################################################
+#general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
 
-energy_df = pd.read_csv("E1/data/" + filename, sep =";",                                                                          lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+#not needed in the case of this particular Dataset
+
+######################################################################
+#calculate Correlation
 corr=energy_df.corr()
-
 corr["Y1"].sort_values(ascending=False)
-#analyse of dataset-->irrel features, verteilung, art der daten, wie preprocessen?, anzahl attributes, anzahl samples,
-# art der ergebnisse  
 
+######################################################################
+#prediction calculation (20 times)
 y = energy_df["Y1"]
 X = energy_df.drop(columns=["Y2","Y1"])
-          
+
+#counter which Preprocessing Type wins the most and which loses the most
 counter_win = [0,0,0,0]
 counter_lose = [0,0,0,0]
 
-
 for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
-
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
-    
-    #preprocessing
+######################################################################
+#preprocessing
     #x1 = standard, x2 normalize, x3 minmax, x4 -werte
     minmax= preprocessing.MinMaxScaler()
     minmax2 = preprocessing.MinMaxScaler()
     scaler = preprocessing.StandardScaler()
     scaler2 = preprocessing.StandardScaler()
 
-
     X1=X_train.copy()
 
     scaler.fit(X1)
     X2= scaler.transform(X1) #X2 normalise scaling
-    
+
     minmax.fit(X1)
     X3 = minmax.transform(X1) #X3 minmax scaling
     
@@ -74,36 +92,30 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     X4_test = scaler2.transform(X4_test)
 
 ######################################################################
-##  applying different methodes:
-######################################################################
-    #lin reg:
-
-    lin_reg = linear_model.LinearRegression()
-######################################################################
-    #knn 
-    #k=10
-    #weigh ="uniform"
-    #knn=neighbors.KNeighborsRegressor(k, weights=weigh)
-    #y_test=np.array(y_test)  
-######################################################################
-    #lasso
+#applying methodes:
     
-######################################################################
-    
-    #tree
+    #select methode
+    if type(methode) is str:
+        if methode is "lasso":
+            methode = linear_model.Lasso()    
+        elif methode is "knn":
+            k=10
+            weigh ="uniform"
+            methode=neighbors.KNeighborsRegressor(k, weights=weigh)
+            y_test=np.array(y_test)  
+        elif methode is "reg_tree":
+            methode = tree.DecisionTreeRegressor()   
+        elif methode is"linear":
+            methode = linear_model.LinearRegression()
+        else:
+            print("Error: Wrong methode chosen!")
 
-
-
-#select methode
-    methode = lin_reg #knn , lasso_reg, regr_tree
 ######################################################################
-##  evaluation for all 5 measures (see pptx numeric_values: Slide 36):
-######################################################################
+#  evaluation for all 5 measures (see pptx numeric_values: Slide 36):
     #fit X_train (moreless X1) with corresponding goal values y_train
     methode.fit(X1,y_train)    
-    y1 = np.array(methode.predict(X_test))       
+    y1 = np.array(methode.predict(X1_test))       
     #y1-y4, y_test
-    
     # y1 is result of prediction y_test is "faked" goal value of prediction
     mittel = y_test.mean()
     mlist = [mittel for i in range(len(y_test))]
@@ -116,7 +128,6 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     sp1 = sum((y1-pbar1)*(y1-pbar1))/(len(y1)-1)
     sa = sum((y_test-mlist)*(y_test-mlist))/(len(y_test)-1)
     cor1 = spa1/sqrt(sp1*sa)
-    
 
     methode.fit(X2,y_train)
     y2 = np.array(methode.predict(X2_test))  
@@ -129,7 +140,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     spa2 = sum((y2-pbar2)*(y_test-mlist))/(len(y2)-1)
     sp2 = sum((y2-pbar2)*(y2-pbar2))/(len(y2)-1)
     cor2 = spa2/sqrt(sp2*sa)
-    
+
     methode.fit(X3,y_train)
     y3 = np.array(methode.predict(X3_test))
     
@@ -141,7 +152,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     spa3 = sum((y3-pbar3)*(y_test-mlist))/(len(y3)-1)
     sp3 = sum((y3-pbar3)*(y3-pbar3))/(len(y3)-1)
     cor3 = spa3/sqrt(sp3*sa)
-    
+
     methode.fit(X4,y_train)
     y4 = np.array(methode.predict(X4_test))
 
@@ -190,9 +201,14 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     counter_lose[entry5.index(lose5)] +=1 
 
     print('\n')
-            
+
+    #train_score=methode.score(X1,y_train) #TODO: not working: because: Line 77 / 63 vs 67/68
+    #test_score=lin_reg.score(X_test,y_test)
+    #print(train_score, test_score)
 print("counter_win: \n",counter_win)
 print("best Preproccesing: ", counter_win.index(max(counter_win))+1)
 print('\n')
 print("counter_lose: \n", counter_lose)
 print("worst Preproccessing: ", counter_lose.index(max(counter_lose))+1)
+
+#%%
