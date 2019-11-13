@@ -1,7 +1,7 @@
 """
-.. module:: E1_bike.py
+.. module:: E1_students.py
     :platform:  Windows
-    :synopsis: preprocesses, and analyses bikeSharing_train.csv, all 4 methodes (treeRegression, LinearRegression,             LassoRegression and K-nn) are performed at the end 5 measures for the prediction are being calculated.
+    :synopsis: preprocesses, and analyses Student_train.csv.csv, all 4 methodes (treeRegression, LinearRegression,             LassoRegression and K-nn) are performed at the end 5 measures for the prediction are being calculated.
 
 .. moduleauthor: Peter Stroppa, Sophie Rain, Lucas Unterberger
 
@@ -27,26 +27,31 @@ from sklearn.model_selection import train_test_split
 
 ######################################################################
 #comments
-# no general comments here
-
+# uniform is most of the time as distance
+# the best k is fluctuating quite a lot. Most of the time around 30
+# if weights=uniform and k=40 -> preprocessing 4 is best 1,2 both still likely, 3 hardly ever
+# if value of feature in correlation matrix < 0.1 -> not taken into consideration 
+#minmax is quite bad because theare are a lot of 0-1 values. These are weigthet really strong, for minmax
+#handmade ordinal is better then onehot--> intuition, 
+#when taking new features (due to ordinal) 4 wins nearly always
 ######################################################################
 #Input
 
-filename='bikeSharing_train.csv'
+filename='Student_train.csv'
 methode = "linear"
 
-bike_df = pd.read_csv("E1/data/" + filename, sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+students_df = pd.read_csv("E1/data/" + filename, sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
 
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
 
-y = bike_df["cnt"]
-X = bike_df.drop(columns=["dteday","cnt", "id"])
+y = students_df['Grade']
+X = students_df.drop(columns=["id","Grade"])
 
 ######################################################################
 #calculate Correlation
-corr = bike_df.corr()
-corr_feature = corr["cnt"].sort_values(ascending=False)
+corr = students_df.corr()
+corr_feature = corr["Grade"].sort_values(ascending=False)
 #print(corr_feature)
 ######################################################################
 #prediction calculation (20 times)
@@ -56,35 +61,109 @@ counter_win = [0,0,0,0]
 counter_lose = [0,0,0,0]
 
 for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
+   
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
 ######################################################################
 #preprocessing
     #x1 = standard, x2 minmax-werte, x3 minmax, x4 -werte
+    enc = ColumnTransformer([("wtf", preprocessing.OneHotEncoder(handle_unknown='ignore'), [0,1,3,4,5,8,9,10,11,15,16,17,18,19,20,21,22])])
+    enc2 = ColumnTransformer([("wtf", preprocessing.OneHotEncoder(handle_unknown='ignore'), [0,1,3,4,7,8,11,12,13,14,15,16])])
+
     minmax= preprocessing.MinMaxScaler()
     minmax2 = preprocessing.MinMaxScaler()
+    scaler = preprocessing.StandardScaler()
+    scaler2 = preprocessing.StandardScaler()
     
-    X1=X_train.copy()
-
-    X2=X1.drop(columns=['weekday',"holiday"])
-    minmax.fit(X2)
-    X2 = minmax.transform(X2) #X2 minmax scaling
+    enc.fit(X_train)
+    X1 = enc.transform(X_train)  #X1 minimum effort encoding
     
-    minmax2.fit(X1)
-    X3 = minmax2.transform(X1) #X3 minmax scaling
+    scaler.fit(X1)
+    X2 = scaler.transform(X1) #X2 zscore scaling
+    
+    minmax.fit(X1)
+    X3 = minmax.transform(X1) #X3 minmax scaling
     
     X4=X_train.copy()
-    X4=X4.drop(columns=['weekday',"holiday"])
-
-    X1_test=X_test.copy()
-
-    X2_test=X_test.drop(columns=['weekday',"holiday"])
-    X2_test = minmax.transform(X2_test) #X2 minmax scaling
-
-    X3_test = minmax2.transform(X1_test) #X3 minmax scaling
-
+    X4=X4.drop(columns=['school','famsize','Pstatus','Fjob','reason','guardian','schoolsup','famsup','activities','famrel','Dalc','Walc','health','absences'])
+    
+    X4=X4.replace(to_replace='GP',value=1)
+    X4=X4.replace(to_replace='MS',value=0)
+    
+    X4=X4.replace(to_replace='F',value=1)
+    X4=X4.replace(to_replace='M',value=0)
+    
+    X4=X4.replace(to_replace='LE3',value=1)
+    X4=X4.replace(to_replace='GT3',value=0)
+    
+    X4=X4.replace(to_replace='T',value=1)
+    X4=X4.replace(to_replace='A',value=0)
+    
+    X4=X4.replace(to_replace='at_home',value=0)
+    X4=X4.replace(to_replace='services',value=1)
+    X4=X4.replace(to_replace='other',value=2)
+    X4=X4.replace(to_replace='teacher',value=3)
+    X4=X4.replace(to_replace='health',value=4)
+    
+    X4=X4.replace(to_replace='reputation',value=1)
+    X4=X4.replace(to_replace='home',value=0)
+    X4=X4.replace(to_replace='course',value=2)
+    
+    X4=X4.replace(to_replace='mother',value=1)
+    X4=X4.replace(to_replace='father',value=1)
+    
+    X4=X4.replace(to_replace='yes',value=1)
+    X4=X4.replace(to_replace='no',value=0)
+    
+    X4=X4.replace(to_replace='U',value=1)
+    X4=X4.replace(to_replace='R',value=0)
+    
+    scaler2.fit(X4)
+    X4=scaler2.transform(X4)    
+    
+    X4_test = X_test.copy()
+    
     X4_test=X_test.copy()
-    X4_test=X4_test.drop(columns=['weekday',"holiday"])
+    X4_test=X4_test.drop(columns=['school','famsize','Pstatus','Fjob','reason','guardian','schoolsup','famsup','activities','famrel','Dalc','Walc','health','absences'])
+    
+    X4_test=X4_test.replace(to_replace='GP',value=1)
+    X4_test=X4_test.replace(to_replace='MS',value=0)
+    
+    X4_test=X4_test.replace(to_replace='F',value=1)
+    X4_test=X4_test.replace(to_replace='M',value=0)
+    
+    X4_test=X4_test.replace(to_replace='LE3',value=1)
+    X4_test=X4_test.replace(to_replace='GT3',value=0)
+    
+    X4_test=X4_test.replace(to_replace='T',value=1)
+    X4_test=X4_test.replace(to_replace='A',value=0)
+    
+    X4_test=X4_test.replace(to_replace='at_home',value=0)
+    X4_test=X4_test.replace(to_replace='services',value=1)
+    X4_test=X4_test.replace(to_replace='other',value=2)
+    X4_test=X4_test.replace(to_replace='teacher',value=3)
+    X4_test=X4_test.replace(to_replace='health',value=4)
+    
+    X4_test=X4_test.replace(to_replace='reputation',value=1)
+    X4_test=X4_test.replace(to_replace='home',value=0)
+    X4_test=X4_test.replace(to_replace='course',value=2)
+    
+    X4_test=X4_test.replace(to_replace='mother',value=1)
+    X4_test=X4_test.replace(to_replace='father',value=1)
+    
+    X4_test=X4_test.replace(to_replace='yes',value=1)
+    X4_test=X4_test.replace(to_replace='no',value=0)
+    
+    X4_test=X4_test.replace(to_replace='U',value=1)
+    X4_test=X4_test.replace(to_replace='R',value=0)
+    
+    X4_test=scaler2.transform(X4_test)
+  
+    X1_test=enc.transform(X_test)  #test data zu X1
+    
+    X2_test=scaler.transform(X1_test) #test data zu X2
+    
+    X3_test=minmax.transform(X1_test) #test data zu X3
 
 
 ######################################################################
@@ -206,5 +285,3 @@ print("best Preproccesing: ", counter_win.index(max(counter_win))+1)
 print('\n')
 print("counter_lose: \n", counter_lose)
 print("worst Preproccessing: ", counter_lose.index(max(counter_lose))+1)
-
-#%%

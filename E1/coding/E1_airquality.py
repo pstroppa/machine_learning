@@ -1,7 +1,7 @@
 """
-.. module:: E1_bike.py
+.. module:: airquality.py
     :platform:  Windows
-    :synopsis: preprocesses, and analyses bikeSharing_train.csv, all 4 methodes (treeRegression, LinearRegression,             LassoRegression and K-nn) are performed at the end 5 measures for the prediction are being calculated.
+    :synopsis: preprocesses, and analyses AirQuality.csv, all 4 methodes (treeRegression, LinearRegression,             LassoRegression and K-nn) are performed at the end 5 measures for the prediction are being calculated.
 
 .. moduleauthor: Peter Stroppa, Sophie Rain, Lucas Unterberger
 
@@ -27,27 +27,44 @@ from sklearn.model_selection import train_test_split
 
 ######################################################################
 #comments
-# no general comments here
+# "goal"-value is benzen value
+# after check with correlation matrix, we decide to remove time and date
 
 ######################################################################
 #Input
 
-filename='bikeSharing_train.csv'
-methode = "linear"
+filename='AirQuality.csv'
+methode = "tree"
 
-bike_df = pd.read_csv("E1/data/" + filename, sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+air_df = pd.read_csv("E1/data/" + filename, sep =";", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
 
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
+air_df = air_df[:9357]           
 
-y = bike_df["cnt"]
-X = bike_df.drop(columns=["dteday","cnt", "id"])
+air_df=air_df.drop(columns=['NMHC(GT)','CO(GT)','NOx(GT)','NO2(GT)','Unnamed: 15','Unnamed: 16'])
+hours=air_df['Time'].apply(lambda x: int(str(x).split('.')[0]))
+air_df=air_df.drop(columns=['Time'])
+air_df['Time']=hours
+months=air_df['Date'].apply(lambda x: (str(x).split('/')[1]+'_'+str(x).split('/')[2]))
+air_df=air_df.drop(columns=['Date'])
+air_df['Date']=months
+air_df=air_df.replace(['03_2004','04_2004','05_2004','06_2004','07_2004','08_2004','09_2004','10_2004','11_2004','12_2004','01_2005','02_2005','03_2005','04_2005'],range(14))
+
+air_df['T']=pd.to_numeric(air_df['T'].str.replace(',', '.', regex=False))
+air_df['RH']=pd.to_numeric(air_df['RH'].str.replace(',', '.', regex=False))
+air_df['AH']=pd.to_numeric(air_df['AH'].str.replace(',', '.', regex=False))
+air_df['C6H6(GT)']=pd.to_numeric(air_df['C6H6(GT)'].str.replace(',', '.', regex=False))
+
+X=air_df.drop(columns=['C6H6(GT)'])
+y = air_df['C6H6(GT)']
 
 ######################################################################
-#calculate Correlation
-corr = bike_df.corr()
-corr_feature = corr["cnt"].sort_values(ascending=False)
+#calculate Correlation matrix
+corr = air_df.corr()
+corr_feature = corr['C6H6(GT)'].sort_values(ascending=False)
 #print(corr_feature)
+
 ######################################################################
 #prediction calculation (20 times)
 
@@ -60,31 +77,34 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
 
 ######################################################################
 #preprocessing
-    #x1 = standard, x2 minmax-werte, x3 minmax, x4 -werte
-    minmax= preprocessing.MinMaxScaler()
+    #x1 = standard, x2 normalized, x3 minmax, x4 normalized -werte
+    min_max= preprocessing.MinMaxScaler()
     minmax2 = preprocessing.MinMaxScaler()
+    scaler = preprocessing.StandardScaler()
+    scaler2 = preprocessing.StandardScaler()
     
-    X1=X_train.copy()
-
-    X2=X1.drop(columns=['weekday',"holiday"])
-    minmax.fit(X2)
-    X2 = minmax.transform(X2) #X2 minmax scaling
+    X1 = X_train.copy()  #X1 minimum effort encoding
     
-    minmax2.fit(X1)
-    X3 = minmax2.transform(X1) #X3 minmax scaling
+    scaler.fit(X1)
+    X2 = scaler.transform(X1) #X2 zscore scaling
+    
+    min_max.fit(X1)
+    X3 = min_max.transform(X1) #X3 minmax scaling
     
     X4=X_train.copy()
-    X4=X4.drop(columns=['weekday',"holiday"])
-
-    X1_test=X_test.copy()
-
-    X2_test=X_test.drop(columns=['weekday',"holiday"])
-    X2_test = minmax.transform(X2_test) #X2 minmax scaling
-
-    X3_test = minmax2.transform(X1_test) #X3 minmax scaling
-
+    X4=X4.drop(columns=['Time','Date'])
+    scaler2.fit(X4)
+    X4=scaler2.transform(X4)    
+    
     X4_test=X_test.copy()
-    X4_test=X4_test.drop(columns=['weekday',"holiday"])
+    X4_test=X4_test.drop(columns=['Time','Date'])
+    X4_test=scaler2.transform(X4_test)
+    
+    X1_test=X_test.copy()  #test data zu X1
+    
+    X2_test=scaler.transform(X_test) #test data zu X2
+    
+    X3_test=min_max.transform(X_test) #test data zu X3
 
 
 ######################################################################

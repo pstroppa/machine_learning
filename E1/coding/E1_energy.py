@@ -3,7 +3,7 @@
 """
 .. module:: E1_energy.py
     :platform:  Windows
-    :synopsis: preprocesses, and analyses energy.csv, all 4 methodes (treeRegression, LinearRegression, LassRegression         and K-nn) are performed at the end 5 measures for the prediction are being calculated.
+    :synopsis: preprocesses, and analyses energy.csv, all 4 methodes (treeRegression, LinearRegression, LassoRegression        and K-nn) are performed at the end 5 measures for the prediction are being calculated.
 
 .. moduleauthor: Peter Stroppa, Sophie Rain, Lucas Unterberger
 
@@ -42,17 +42,16 @@ energy_df = pd.read_csv("E1/data/" + filename, sep =";", lineterminator="\n", en
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
 
-#not needed in the case of this particular Dataset
+y = energy_df["Y1"]
+X = energy_df.drop(columns=["Y2","Y1"])
 
 ######################################################################
 #calculate Correlation
-corr=energy_df.corr()
-corr["Y1"].sort_values(ascending=False)
-
+corr = energy_df.corr()
+corr_feature = corr["Y1"].sort_values(ascending=False)
+#print(corr_feature)
 ######################################################################
 #prediction calculation (20 times)
-y = energy_df["Y1"]
-X = energy_df.drop(columns=["Y2","Y1"])
 
 #counter which Preprocessing Type wins the most and which loses the most
 counter_win = [0,0,0,0]
@@ -62,7 +61,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 ######################################################################
 #preprocessing
-    #x1 = standard, x2 normalize, x3 minmax, x4 -werte
+    #x1 = standard, x2 normalize, x3 minmax, x4 normalize -werte
     minmax= preprocessing.MinMaxScaler()
     minmax2 = preprocessing.MinMaxScaler()
     scaler = preprocessing.StandardScaler()
@@ -103,7 +102,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
             weigh ="uniform"
             methode=neighbors.KNeighborsRegressor(k, weights=weigh)
             y_test=np.array(y_test)  
-        elif methode is "reg_tree":
+        elif methode is "tree":
             methode = tree.DecisionTreeRegressor()   
         elif methode is"linear":
             methode = linear_model.LinearRegression()
