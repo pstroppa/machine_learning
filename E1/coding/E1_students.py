@@ -34,11 +34,17 @@ from sklearn.model_selection import train_test_split
 #minmax is quite bad because theare are a lot of 0-1 values. These are weigthet really strong, for minmax
 #handmade ordinal is better then onehot--> intuition, 
 #when taking new features (due to ordinal) 4 wins nearly always
+# knn ?? 24-40 uniform
+#lin eh klar
+#lasso alpha = 0.25
+#regression tree = min_samples_leave = 3
+# preprocessing 4 fast immer am besten
+
 ######################################################################
 #Input
-
+#%%
 filename='Student_train.csv'
-methode = "lasso"
+methode = "knn"
 
 students_df = pd.read_csv("E1/data/" + filename, sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
 
@@ -60,8 +66,8 @@ corr_feature = corr["Grade"].sort_values(ascending=False)
 counter_win = [0,0,0,0]
 counter_lose = [0,0,0,0]
 
-for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
-   
+for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
+
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
 ######################################################################
@@ -157,6 +163,11 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     X4_test=X4_test.replace(to_replace='U',value=1)
     X4_test=X4_test.replace(to_replace='R',value=0)
     
+
+    X1=X4.copy()
+    X2=X4.copy()
+    X3=X4.copy()
+
     X4_test=scaler2.transform(X4_test)
   
     X1_test=enc.transform(X_test)  #test data zu X1
@@ -165,16 +176,18 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     
     X3_test=minmax.transform(X1_test) #test data zu X3
 
-
+    X1_test=X4_test.copy()
+    X2_test=X4_test.copy()
+    X3_test=X4_test.copy()
 ######################################################################
 #applying methodes:
     
     #select methode
     if type(methode) is str:
         if methode is "lasso":
-            methode = linear_model.Lasso(alpha=0.3)    
+            methode = linear_model.Lasso(alpha=0.25)    
         elif methode is "knn":
-            k=10
+            k=24
             weigh ="uniform"
             methode=neighbors.KNeighborsRegressor(k, weights=weigh)
             y_test=np.array(y_test)  
@@ -188,6 +201,8 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
 ######################################################################
 #  evaluation for all 5 measures (see pptx numeric_values: Slide 36):
     #fit X_train (moreless X1) with corresponding goal values y_train
+    
+    methode = neighbors.KNeighborsRegressor(30, weights="uniform")
     methode.fit(X1,y_train)    
     y1 = np.array(methode.predict(X1_test))       
     #y1-y4, y_test
@@ -204,6 +219,7 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     sa = sum((y_test-mlist)*(y_test-mlist))/(len(y_test)-1)
     cor1 = spa1/sqrt(sp1*sa)
 
+    methode = neighbors.KNeighborsRegressor(40, weights="uniform")
     methode.fit(X2,y_train)
     y2 = np.array(methode.predict(X2_test))  
     
@@ -216,6 +232,7 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     sp2 = sum((y2-pbar2)*(y2-pbar2))/(len(y2)-1)
     cor2 = spa2/sqrt(sp2*sa)
 
+    methode = neighbors.KNeighborsRegressor(24, weights="distance")
     methode.fit(X3,y_train)
     y3 = np.array(methode.predict(X3_test))
     
@@ -228,6 +245,7 @@ for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdat
     sp3 = sum((y3-pbar3)*(y3-pbar3))/(len(y3)-1)
     cor3 = spa3/sqrt(sp3*sa)
 
+    methode = neighbors.KNeighborsRegressor(24, weights="uniform")
     methode.fit(X4,y_train)
     y4 = np.array(methode.predict(X4_test))
 
@@ -285,3 +303,6 @@ print("best Preproccesing: ", counter_win.index(max(counter_win))+1)
 print('\n')
 print("counter_lose: \n", counter_lose)
 print("worst Preproccessing: ", counter_lose.index(max(counter_lose))+1)
+
+
+# %%
