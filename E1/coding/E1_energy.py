@@ -36,7 +36,7 @@ from sklearn.model_selection import train_test_split
 #Input
 
 filename="energy.csv"
-methode = "lasso"
+methode = "tree"
 energy_df = pd.read_csv("E1/data/" + filename, sep =";", lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
 ######################################################################
@@ -84,6 +84,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
 
     X2_test = scaler.transform(X1_test)
     
+    X3_test=X_test.copy()
+    X3_test=X3_test.drop(columns=["X6"])
     X3_test = minmax.transform(X1_test) #X3 minmax scaling
 
     X4_test=X_test.copy()

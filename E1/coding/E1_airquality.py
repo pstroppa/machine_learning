@@ -24,8 +24,10 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn import preprocessing, tree
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
+from sklearn.impute import SimpleImputer
 
 ######################################################################
+
 #comments
 # "goal"-value is benzen value
 # after check with correlation matrix, we decide to remove time and date
@@ -82,6 +84,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     minmax2 = preprocessing.MinMaxScaler()
     scaler = preprocessing.StandardScaler()
     scaler2 = preprocessing.StandardScaler()
+    #input_nan = SimpleImputer(missing_values=-200, strategy='mean')
     
     X1 = X_train.copy()  #X1 minimum effort encoding
     
@@ -89,6 +92,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     X2 = scaler.transform(X1) #X2 zscore scaling
     
     min_max.fit(X1)
+    #input_nan.fit(X1)
+    #X3 = input_nan.transform(X1)
     X3 = min_max.transform(X1) #X3 minmax scaling
     
     X4=X_train.copy()
@@ -96,16 +101,16 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     scaler2.fit(X4)
     X4=scaler2.transform(X4)    
     
-    X4_test=X_test.copy()
-    X4_test=X4_test.drop(columns=['Time','Date'])
-    X4_test=scaler2.transform(X4_test)
-    
     X1_test=X_test.copy()  #test data zu X1
     
     X2_test=scaler.transform(X_test) #test data zu X2
     
-    X3_test=min_max.transform(X_test) #test data zu X3
+    #X3_test = input_nan.transform(X1_test)
+    X3_test=min_max.transform(X1_test) #test data zu X3
 
+    X4_test=X1_test.copy()
+    X4_test=X4_test.drop(columns=['Time','Date'])
+    X4_test=scaler2.transform(X4_test)
 
 ######################################################################
 #applying methodes:

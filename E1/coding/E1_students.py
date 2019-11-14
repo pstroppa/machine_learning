@@ -38,7 +38,7 @@ from sklearn.model_selection import train_test_split
 #Input
 
 filename='Student_train.csv'
-methode = "linear"
+methode = "lasso"
 
 students_df = pd.read_csv("E1/data/" + filename, sep =",", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
 
@@ -60,7 +60,7 @@ corr_feature = corr["Grade"].sort_values(ascending=False)
 counter_win = [0,0,0,0]
 counter_lose = [0,0,0,0]
 
-for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
+for i in range(3): #mache 5 runs, jeweils unterschiedliche test und trainingsdaten
    
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20)
 
@@ -172,14 +172,14 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     #select methode
     if type(methode) is str:
         if methode is "lasso":
-            methode = linear_model.Lasso()    
+            methode = linear_model.Lasso(alpha=0.3)    
         elif methode is "knn":
             k=10
             weigh ="uniform"
             methode=neighbors.KNeighborsRegressor(k, weights=weigh)
             y_test=np.array(y_test)  
         elif methode is "tree":
-            methode = tree.DecisionTreeRegressor()   
+            methode = tree.DecisionTreeRegressor(min_samples_leaf=3)   
         elif methode is"linear":
             methode = linear_model.LinearRegression()
         else:
