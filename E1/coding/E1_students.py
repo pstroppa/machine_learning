@@ -34,12 +34,13 @@ from sklearn.model_selection import train_test_split
 #minmax is quite bad because theare are a lot of 0-1 values. These are weigthet really strong, for minmax
 #handmade ordinal is better then onehot--> intuition, 
 #when taking new features (due to ordinal) 4 wins nearly always
-# knn ?? 24-40 uniform
+# knn  28 uniform, but every value from 24-40 okay, there is no 'best' k
 #lin eh klar
 #lasso alpha = 0.25
 #regression tree = min_samples_leave = 3
 # preprocessing 4 fast immer am besten
 
+#linear/lasso best, knn second, tree performs poorly
 ######################################################################
 #Input
 #%%
@@ -187,7 +188,7 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
         if methode is "lasso":
             methode = linear_model.Lasso(alpha=0.25)    
         elif methode is "knn":
-            k=24
+            k=28
             weigh ="uniform"
             methode=neighbors.KNeighborsRegressor(k, weights=weigh)
             y_test=np.array(y_test)  
@@ -202,7 +203,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
 #  evaluation for all 5 measures (see pptx numeric_values: Slide 36):
     #fit X_train (moreless X1) with corresponding goal values y_train
     
-    methode = neighbors.KNeighborsRegressor(30, weights="uniform")
+    
+    #methode = neighbors.KNeighborsRegressor(36, weights="uniform")
     methode.fit(X1,y_train)    
     y1 = np.array(methode.predict(X1_test))       
     #y1-y4, y_test
@@ -219,9 +221,12 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     sa = sum((y_test-mlist)*(y_test-mlist))/(len(y_test)-1)
     cor1 = spa1/sqrt(sp1*sa)
 
-    methode = neighbors.KNeighborsRegressor(40, weights="uniform")
+    methode = linear_model.Lasso(alpha=0.25)
+    #methode=neighbors.KNeighborsRegressor(k, weights=weigh)
+    #methode = neighbors.KNeighborsRegressor(32, weights="uniform")
     methode.fit(X2,y_train)
     y2 = np.array(methode.predict(X2_test))  
+    y2=y2.around()
     
     rmse2 = sqrt(mean_squared_error(y_test,y2))
     mae2 = mean_absolute_error(y_test,y2)
@@ -232,7 +237,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     sp2 = sum((y2-pbar2)*(y2-pbar2))/(len(y2)-1)
     cor2 = spa2/sqrt(sp2*sa)
 
-    methode = neighbors.KNeighborsRegressor(24, weights="distance")
+    methode = tree.DecisionTreeRegressor(min_samples_leaf=9)
+    #methode = neighbors.KNeighborsRegressor(28, weights="uniform" )
     methode.fit(X3,y_train)
     y3 = np.array(methode.predict(X3_test))
     
@@ -245,7 +251,8 @@ for i in range(20): #mache 5 runs, jeweils unterschiedliche test und trainingsda
     sp3 = sum((y3-pbar3)*(y3-pbar3))/(len(y3)-1)
     cor3 = spa3/sqrt(sp3*sa)
 
-    methode = neighbors.KNeighborsRegressor(24, weights="uniform")
+    methode = linear_model.Lasso(alpha=0.9)
+    #methode = neighbors.KNeighborsRegressor(24, weights="uniform")
     methode.fit(X4,y_train)
     y4 = np.array(methode.predict(X4_test))
 
