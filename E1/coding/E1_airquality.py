@@ -43,7 +43,6 @@ air_df = pd.read_csv("E1/data/" + filename, sep =";", lineterminator="\n", encod
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
 air_df = air_df[:9357]           
-
 air_df=air_df.drop(columns=['NMHC(GT)','CO(GT)','NOx(GT)','NO2(GT)','Unnamed: 15','Unnamed: 16'])
 hours=air_df['Time'].apply(lambda x: int(str(x).split('.')[0]))
 air_df=air_df.drop(columns=['Time'])
