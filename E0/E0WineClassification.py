@@ -24,7 +24,7 @@ from bokeh.models import ColumnDataSource, Label, Range1d
 from bokeh.palettes import Spectral11
 
 
-filename='wine_red.csv'
+filename='data/wine_red.csv'
 
 wine_dataframe = pd.read_csv(filename, sep =";")
 samples = wine_dataframe["quality"] 
@@ -72,4 +72,5 @@ for i in range(11):
     else:
         p.add_layout(Label(x=10+49*i, y=int(values[i]/2.09), x_units='screen', y_units='screen', text=str(values[i]), text_color = "black"))
 
-export_png(p, filename="distribution_winequality.png")
+export_png(p, filename="pics/distribution_winequality.png")
+
