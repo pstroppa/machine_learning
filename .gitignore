@@ -535,3 +535,8 @@ $RECYCLE.BIN/
 # json file
 
 *.json
+
+*Lecture
+
+*.jpg
+*old_unused

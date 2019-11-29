@@ -72,5 +72,4 @@ for i in range(11):
     else:
         p.add_layout(Label(x=10+49*i, y=int(values[i]/2.09), x_units='screen', y_units='screen', text=str(values[i]), text_color = "black"))
 
-export_png(p, filename="pics/distribution_winequality.png")
-
+export_png(p, filename="data/distribution_winequality.png")
