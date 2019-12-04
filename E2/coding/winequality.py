@@ -1,9 +1,10 @@
 
 #%%
 """
-.. module:: file1.py
+.. module:: winequality.py
     :platform:  Windows
-    :synopsis:   please discribe
+    :synopsis:  the file applies machine learning on the winequality_white dataset
+                and analysis which parameters are best considering diffrent avaluation methods 
 
 .. moduleauthor: Peter Stroppa, Sophie Rain, Lucas Unterberger
 
@@ -26,32 +27,46 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 from sklearn import preprocessing, tree
 from sklearn.compose import ColumnTransformer
 from sklearn.model_selection import train_test_split
-
+import E2.coding.find_distribution_short as fds
 ######################################################################
 #comments
-#
-#
+
+#alc % 8-15
+#vol aci g/dm 0.12 , 1.58
+#sulphates g/dm 0.3, 2
+#citric acid g/dm 0
+# suflfur mg/dm 0, 150
 
 ######################################################################
 #Input
 
-filename = "winequality_white.csv"
+filename = "wine_red.csv"
 methode = "  "
 wine_df = pd.read_csv("E2/data/" + filename, sep=";",
                         lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
+
+######################################################################
+
+# find distribution that best suits distribution of attributes:
+#for attribute in wine_df.columns.tolist():
+#    best_name, best_distri = fds.find_best_distribution(wine_df[attribute], False)
+#    print(attribute, ":", best_name)
+
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
+
 
 # get target value
 y = wine_df["quality"]
 # drop unimportant columns
-X = 
+X = wine_df.drop()
 
 ######################################################################
 #calculate Correlation
-corr = df.corr()
-corr_feature = corr[" "].sort_values(ascending=False)
+corr= wine_df.corr()
+corr_feature = ["quality"].sort_values(ascending=False)
+top5_corr = abs(wine_df.corr()["quality"]).sort_values(ascending=False)[1:6]
 #print(corr_feature)
 ######################################################################
 #prediction calculation (20 times)
@@ -66,9 +81,8 @@ for i in range(20):  # mache 5 runs, jeweils unterschiedliche test und trainings
 #preprocessing
     #x1 = standard, x2 normalize, x3 minmax, x4 normalize -werte
     minmax = preprocessing.MinMaxScaler()
-    minmax2 = preprocessing.MinMaxScaler()
     scaler = preprocessing.StandardScaler()
-    scaler2 = preprocessing.StandardScaler()
+
 
     X1 = X_train.copy()
 
@@ -91,6 +105,7 @@ for i in range(20):  # mache 5 runs, jeweils unterschiedliche test und trainings
     X3_test = X3_test.drop(columns=["X6"])
     X3_test = minmax.transform(X1_test)  # X3 minmax scaling
 
+    #drop mabe pH, free sulfur, residual sugar
     X4_test = X_test.copy()
     X4_test = X4_test.drop(columns=["X6"])
     X4_test = scaler2.transform(X4_test)
