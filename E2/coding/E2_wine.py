@@ -46,7 +46,7 @@ from sklearn import svm
 
 filename = "wine_red.csv"
 methode = "knn"
-cross_validation = 5
+cross_validation = 7
 data_df = pd.read_csv("E2/data/" + filename, sep=";",
                       lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
