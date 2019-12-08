@@ -46,7 +46,7 @@ warnings.filterwarnings('ignore')
 ######################################################################
 #Input
 
-filename = 'amazon_train.csv'
+filename = 'E2/data/amazon_train.csv'
 tfidf= 'tfidf.csv'
 methode = "forest"
 
@@ -58,7 +58,8 @@ data_df = pd.read_csv(filename, sep=",",
 tfidf_df = pd.read_csv(tfidf, sep=";",
                         lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 ######################################################################
-#general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
+#general preprocessing (not associated with any methode or
+#  any of the four preprocessing methods later on)
 
 #ID dropped, since it contains no relevant information
 data_df = data_df.drop(columns=['ID'])
@@ -125,7 +126,8 @@ if type(methode) is str:
         #                             random_state=0, shuffle=False))
         
         
-        methode = RandomForestClassifier(min_samples_leaf= 3 ,max_features=1000, n_estimators=100)
+        methode = RandomForestClassifier(min_samples_leaf= 3 ,max_features=1000,
+                                         n_estimators=100)
         #methode.fit(Tx,Ty)
     elif methode is "knn":
         k = 1
