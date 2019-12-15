@@ -19,12 +19,13 @@ from itertools import chain
 import pandas as pd
 #bokeh is used for nice plotting
 from bokeh.io import export_png
-from bokeh.plotting import figure
+from bokeh.plotting import figure, output_file, show
+
 from bokeh.models import ColumnDataSource, Label, Range1d
 from bokeh.palettes import Spectral11
 
 
-filename='data/wine_red.csv'
+filename='E0/data/wine_red.csv'
 
 wine_dataframe = pd.read_csv(filename, sep =";")
 samples = wine_dataframe["quality"] 
@@ -56,6 +57,8 @@ p.y_range=Range1d(0,850)
 #p.legend.orientation = "horizontal"
 #p.legend.location = "top_center"
 
+output_file("pic.html")
+
 for i in range(11):
     if i < 3:
         p.add_layout(Label(x=20+49*i, y=int(values[i]), x_units='screen', y_units='screen', text=str(values[i]), text_color = "black"))   
@@ -72,5 +75,6 @@ for i in range(11):
     else:
         p.add_layout(Label(x=10+49*i, y=int(values[i]/2.09), x_units='screen', y_units='screen', text=str(values[i]), text_color = "black"))
 
-export_png(p, filename="pics/distribution_winequality.png")
+show(p)
+#export_png(p, filename="pics/distribution_winequality.png")
 
