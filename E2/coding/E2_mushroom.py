@@ -1,6 +1,8 @@
-
-#%%
+# -*- coding: utf-8 -*-
 """
+Created on Wed Dec  4 15:44:35 2019
+
+@author: luni
 .. module:: file1.py
     :platform:  Windows
     :synopsis:   please discribe
@@ -19,13 +21,28 @@
 """
 import numpy as np
 import pandas as pd
-from sklearn.metrics.scorer import make_scorer,accuracy_score,precision_score,recall_score
+#import machine learning packages
+from sklearn import linear_model, neighbors
+#from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+from sklearn import preprocessing, tree
+from sklearn.compose import ColumnTransformer
+#from sklearn.model_selection import train_test_split
+
+
+#from sklearn import datasets, linear_model
 from sklearn.model_selection import cross_validate
+from sklearn.metrics.scorer import make_scorer,accuracy_score,precision_score,recall_score
+from sklearn.metrics import confusion_matrix
+#from sklearn.svm import LinearSVC
 from sklearn import svm
+
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.utils import shuffle
-from sklearn import preprocessing
+from sklearn.datasets import make_classification
+
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.utils import shuffle
+
+
 
 ######################################################################
 #comments
@@ -35,117 +52,100 @@ from sklearn.neighbors import KNeighborsClassifier
 ######################################################################
 #Input
 
-filename = 'congress_train.csv'
-methode = "svm"
+filename = 'mushroom.csv'
+methode = "forest"
 
 cross_validation = 5
 
 data_df = pd.read_csv("Data1/"+filename, sep=",",
                         lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
+#randomize data_df
+#data_df = data_df.sample(frac=1)
+
+
+data_df = shuffle(data_df)
 
 
 
-A = data_df.copy()
-
-A=A.drop(columns= ['ID'])
-A=A.replace(to_replace='democrat',value=1)
-A=A.replace(to_replace='republican',value=0)
 
 
-A=A.replace(to_replace='y',value=1)
-A=A.replace(to_replace='n',value=0)
-A=A.replace(to_replace='unknown',value=0.5)
-
-#data_df=data_df.replace(to_replace='unknown',value=0.5)
-
-corr = A.corr()
-corr_feature = corr["class"].sort_values(ascending=False)
-top5_corr = abs(A.corr()["class"]).sort_values(ascending=False)[1:6]
-
-
-#data_df = shuffle(data_df)
 
 ######################################################################
 #general preprocessing (not associated with any methode or any of the four preprocessing methods later on)
 
-#ID dropped, since it contains no relevant information
-data_df = data_df.drop(columns=['ID'])
+#veil-type ist bei jedem sample gleich, es gibt nur '1 Klasse', also kann dieses Attribut
+#omitted werden
 
-X1 = data_df.copy()
-X1 = X1.drop(columns=['class'])
-
-
+X = data_df.drop(columns = ['veil-type','poisonous or edible'])
+y = data_df['poisonous or edible']
 
 
-
-
-#get target value
-y = data_df['class']
-#drop unimportant columns
-X = data_df.drop(columns=['class'])
-
-
-
-X=X.replace(to_replace='y',value=1)
-X=X.replace(to_replace='n',value=0)
-X=X.replace(to_replace='unknown',value=0.5)
-
+'''
+y = y.replace(to_replace='p',value = 1)
+y = y.replace(to_replace='e',value = 0)
+'''
 
 
 ######################################################################
-
 #preprocessing
-#x1  , x2 , x3 , x4 
+#x1 ,x2 , x3 ,x4
+
+
+#onehotencoded
+
+
+X1 = X.copy()
+
+
 
 enc = preprocessing.OneHotEncoder(handle_unknown='ignore')
 enc.fit(X1)
-#D3 = enc.transform(X3).toarray()
+D1 = enc.transform(X1).toarray()
 
 X1 = enc.transform(X1)
 
 
+#mischung aus ordinal und hotencoding
 X2 = X.copy()
 
 
-#feature selection: die mit niedrigster Korrelation werden eliminiert: hier bei <6% sind das
-#erstaunlicher Weise die Spalten immigration und water-project-sharing-cost
-X3 = X.copy()
-#X3 = X3[["adoption-of-the-budget-resolution",'physician-fee-freeze']]   #.drop(columns=['immigration','water-project-cost-sharing'])
 
-
-#faszinierenderweise funktioniert der code, es werden spalten gelöscht und richtig
-#berechnet, es kommt genau dasselbe raus wie wenn sie nicht gedroppt werden
-X3 = X3.drop(columns=['immigration','water-project-cost-sharing'])
-
-
-X4 = data_df.copy()
-
-#ordinal encoded
-X4=X4.replace(to_replace='y',value=1)
-X4=X4.replace(to_replace='n',value=0)
-X4=X4.replace(to_replace='unknown',value=0.5)
-
-#X4 = X4.replace(to_replace='democrat',value = 1)
-#X4 = X4.replace(to_replace='republican',value = 0)
-
-X4 = X4.drop(columns=['class'])
+X2['bruises'] = X2['bruises'].replace(to_replace='f',value=1)
+X2['bruises'] = X2['bruises'].replace(to_replace='t',value=0)
+X2['gill-attachment'] = X2['gill-attachment'].replace(to_replace='f',value=1)
+X2['gill-attachment'] = X2['gill-attachment'].replace(to_replace='a',value=0)
+X2['gill-spacing'] = X2['gill-spacing'].replace(to_replace='c',value=1)
+X2['gill-spacing'] = X2['gill-spacing'].replace(to_replace='w',value=0)
+X2['gill-size'] = X2['gill-size'].replace(to_replace='b',value=1)
+X2['gill-size'] = X2['gill-size'].replace(to_replace='n',value=0)
+X2['stalk-shape'] = X2['stalk-shape'].replace(to_replace='t',value=1)
+X2['stalk-shape'] = X2['stalk-shape'].replace(to_replace='e',value=0)
 
 
 
-for col in X4.columns:
-    if corr_feature[col] < 0:
-        X4[col] = (max(X4[col])-X4[col])/max(X4[col])*abs(corr_feature[col])
-    else:
-        X4[col] = X4[col] / max(X4[col])*abs(corr_feature[col])
+
+
+enc = ColumnTransformer([("why", preprocessing.OneHotEncoder(handle_unknown='ignore'),\
+                        ['cap-shape','cap-surface','cap-color','odor','gill-color','stalk-root',
+                         'stalk-surface-above-ring','stalk-surface-below-ring','stalk-color-above-ring','stalk-color-below-ring',
+                         'veil-color','ring-number','ring-type','spore-print-color','population',
+                         'habitat\r'])],remainder='passthrough')
+enc.fit(X2)
+D2 = enc.transform(X2).toarray()
+
+X2 = enc.transform(X2)
 
 
 
-#Anmerkung: An Korrelationsmatrix sieht man, dass Klassen mit gewissen Attributen zu 90% korrellieren können
-#Vermutung: Decision-Trees gut für so eine Aufgabe
-#
-#C= data_df.corr()
-#C = C['class'].sort_values()
+
+
+
+
+
+
+
+ 
 
 
 
@@ -163,14 +163,14 @@ if type(methode) is str:
         #                             random_state=0, shuffle=False))
         
         
-        methode = RandomForestClassifier(n_estimators=100)
+        methode = RandomForestClassifier(n_estimators = 100)
         #methode.fit(Tx,Ty)
     elif methode is "knn":
-        k = 5
-        weigh = "distance"
-        methode = KNeighborsClassifier(k, weights=weigh)
+        k = 1
+        weigh = "uniform"
+        methode = neighbors.KNeighborsClassifier(k, weights=weigh)
     elif methode is"svm":
-        methode = svm.SVC(kernel='poly',coef0 = 10,gamma='auto')
+        methode = svm.SVC(gamma='scale')
     else:
         print("Error: Wrong methode chosen!")
 
@@ -180,13 +180,11 @@ if type(methode) is str:
     
 
 
-
-
-#score = ['accuracy', 'precision_weighted', 'recall_weighted']
-
 score = {'accuracy': make_scorer(accuracy_score),
          'precision': make_scorer(precision_score, average='macro'),
          'recall': make_scorer(recall_score, average='macro')}
+ 
+
 
 
 
@@ -207,33 +205,30 @@ for key2 in list(cv_results2.keys())[2:]:
 print("\n")
 
 #Fit of 3
+'''
 cv_results3 = cross_validate(methode, X3, y, scoring = score,  cv=cross_validation)
 for key3 in list(cv_results3.keys())[2:]: 
     cv_results3[key3] = np.append(cv_results3[key3], cv_results3[key3].mean())
     print('{:35}'.format('evaluation for 3, ' + key3 + ": "), cv_results3[key3])
+'''
 
+
+
+'''
 print("\n")
-
-cv_results4 = cross_validate(methode, X4, y, scoring = score,  cv=cross_validation)
-for key4 in list(cv_results4.keys())[2:]: 
+#Fit of 4 ..
+cv_results4 = cross_validate(methode, X4, y, scoring=score,  cv=cross_validation)
+for key4 in list(cv_results4.keys())[2:]:
     cv_results4[key4] = np.append(cv_results4[key4], cv_results4[key4].mean())
-    print('{:35}'.format('evaluation for 4, ' + key4 + ": "), cv_results4[key4])
+    print('{:35}'.format('evalution for 4, ' + key4 + ": "), cv_results4[key4])
+
+'''
+
+
+#Fit of 4 ..
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-    
-    
-    
-#%%
