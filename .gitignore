@@ -540,3 +540,10 @@ $RECYCLE.BIN/
 
 *.jpg
 *old_unused
+
+E3/data*
+
+*.vs_code
+*pics*
+*pics
+pics*
