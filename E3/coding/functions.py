@@ -19,6 +19,9 @@ import numpy as np
 import cv2
 from skimage import color, exposure, transform
 
+#import libraries for plotting and calculation
+import matplotlib.pyplot as plt
+
 #import librariers for CNN and Deep Learning (Tensorflow in Backend)
 from keras.models import Sequential
 from keras.layers.normalization import BatchNormalization
@@ -63,14 +66,12 @@ def image_preprocessing(dire,N_CLASSES,preprocessing_type="color"):
                 image = (image / 255.0)  # rescale
             image = cv2.resize(image, (32, 32))  # resize
             images.append(image)
-
             # create the image labels and one-hot encode them
             labels = np.zeros((N_CLASSES, ), dtype=np.float32)
             labels[i] = 1.0
             image_labels.append(labels)
 
-    images = np.stack([img[:, :, np.newaxis]
-                    for img in images], axis=0).astype(np.float32)
+    images = np.array(images, dtype = "float32")
     image_labels = np.matrix(image_labels).astype(np.float32)
     return images,image_labels
 
@@ -87,7 +88,7 @@ def initialize_model(N_CLASSES):
     :returns model: keras.sequential.object
     """
     model = Sequential()
-    input_shape = (32, 32, 1)  # grey-scale images of 32x32
+    input_shape = (32, 32, 3)  # grey-scale images of 32x32
 
     model.add(Conv2D(32, (5, 5), padding='same', activation='relu', input_shape=input_shape))
     model.add(BatchNormalization(axis=-1))

@@ -22,14 +22,11 @@ import settings as st
 import functions as fc
 ##########################################################################
 
-
 # find paths
 traindirectory = Path(__file__).parents[1].joinpath(st.rel_train_pathstring)
 testdirectory = Path(__file__).parents[1].joinpath(st.rel_test_pathstring)
 
 #set random seed
-np.random.seed(st.seed)
-
 #import images and preprocess them
 [train_image,train_image_labels] = fc.image_preprocessing(traindirectory, st.NUM_CLASSES,
                                                           st.preprocessing_type)
@@ -37,7 +34,7 @@ np.random.seed(st.seed)
                                                         st.preprocessing_type)
 
 #show input
-plt.imshow(train_image[12, :, :, :].reshape(32,32), cmap='gray')
+#plt.imshow(train_image[12, :, :, 0,:])
 #print(train_image_labels[12, :])
 #print(train_image_labels.shape)
 
