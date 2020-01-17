@@ -21,11 +21,11 @@ rel_pic_pathstring = 'pics/clean_plot.png'
 #relative path as string for modell saving folder
 rel_model_pathstring = 'models/clean_model.h5'
 
-#number for classes for classifier
-NUM_CLASSES = 2
+#number for classes for classifier (9 is maximum/ all clean classes)
+NUM_CLASSES = 9
 
 #number pf epochs the CNN will run through
-NUM_EPOCHS = 3
+NUM_EPOCHS = 5
 
 #random seed for CNN calculations
 seed = 42
@@ -35,3 +35,6 @@ plotting =True
 
 # Parameter for saving model. Set to False if no saving needed.
 saving = True
+
+#Choose for preprocessing type. Choices are: color or grey 
+preprocessing_type = "color"

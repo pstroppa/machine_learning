@@ -14,12 +14,10 @@
 #import libraries for paths
 from pathlib import Path
 import glob
-#import libraries for plotting and calculation
-import matplotlib.pyplot as plt
 import numpy as np
 #import libraries for preprocessing pictures
 import cv2
-from skimage.color import rgb2grey
+from skimage import color, exposure, transform
 
 #import librariers for CNN and Deep Learning (Tensorflow in Backend)
 from keras.models import Sequential
@@ -32,29 +30,37 @@ from keras import optimizers
 ##########################################################################
 
 # get the image paths + test data preparation
-def image_preprocessing(dire,N_CLASSES):
+def image_preprocessing(dire,N_CLASSES,preprocessing_type="color"):
     """
     imports images form an given Path, preprocesses them and returns two
     arrays of ints, containg the pictures a colorvalues and onehot encodeds
-    labels of the pictures. It preprocesses N_CLASSES many diffrent classes,
-    e.g diffrent folders, which each folder containg one class of pictures.
+    labels of the pictures. It preprocesses N_CLASSES many different classes,
+    e.g different folders, which each folder containg one class of pictures
+    Images are turned to black white view /grey for type grey and normalizes
+    the histogram to some kind of standard view for type color.
 
     :param dire: path
     :param N_CLASSES: int
+    :param preprocessing_type: string
     :returns images: array of int
     :returns image_labels: array of int
     """
-    
     images = []
     image_labels = []
     subdir_list = [x for x in dire.iterdir() if x.is_dir()]
-    
+
     for i in range(N_CLASSES):
         image_path = subdir_list[i]
         for img in glob.glob(str(image_path)+ '/*'):
             image = cv2.imread(img)
-            image = rgb2grey(image)
-            image = (image / 255.0)  # rescale
+            if preprocessing_type == "color":
+                # Histogram normalization in v channel
+                hsv = color.rgb2hsv(image)
+                hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
+                image = color.hsv2rgb(hsv)
+            else: 
+                image = color.rgb2grey(image)
+                image = (image / 255.0)  # rescale
             image = cv2.resize(image, (32, 32))  # resize
             images.append(image)
 
