@@ -11,13 +11,13 @@
 '''
 
 #import path and numpy
-from keras.models import load_model
 from pathlib import Path
 import numpy as np
 
 #import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
+from keras.models import load_model
 #import personal files
 import settings as st
 import functions as fc
@@ -61,10 +61,13 @@ if st.training == True:
                             train_image_labels, test_image, test_image_labels)
     model_1 = history.model
 else:
-    model_1 = load_model(st.rel_model_load_pathstring)
+    model_1 = load_model(Path(__file__).parents[1]\
+                .joinpath(st.rel_model_load_pathstring))
 
 if st.evaluation == True:
-    print("to be done")
+    results = model_1.evaluate(poison_test_image, poison_test_image_labels)
+    print("test loss, testacc: ", results)
+    print("evaluation done")
 
 if st.pruning == True:
     print("to be done")
@@ -78,4 +81,4 @@ if st.plotting == True:
 # if saving is set to True in settings: save model
 if st.saving ==True:
     fc.saving_model(model_1, st.rel_model_save_pathstring)
-    print("saving done")
+    print("saving model done")
