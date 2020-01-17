@@ -11,6 +11,7 @@
 '''
 
 #import path and numpy
+from keras.models import load_model
 from pathlib import Path
 import numpy as np
 
@@ -21,31 +22,53 @@ import matplotlib.pyplot as plt
 import settings as st
 import functions as fc
 ##########################################################################
+#test later for logging
+#import tensorboard
+#import tempfile
+#logdir = tempfile.mkdtemp()
+#print('Writing training logs to ' + logdir)
+# tensorboard - -logdir = {logdir}
+
+##########################################################################
 
 # find paths
-traindirectory = Path(__file__).parents[1].joinpath(st.rel_train_pathstring)
-testdirectory = Path(__file__).parents[1].joinpath(st.rel_test_pathstring)
+train_directory = Path(__file__).parents[1].joinpath(st.rel_train_pathstring)
+test_directory = Path(__file__).parents[1].joinpath(st.rel_test_pathstring)
+poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathstring)
 
 #set random seed
 #import images and preprocess them
-[train_image,train_image_labels] = fc.image_preprocessing(traindirectory, st.NUM_CLASSES,
+[train_image,train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
                                                           st.preprocessing_type)
-[test_image, test_image_labels]= fc.image_preprocessing(testdirectory, st.NUM_CLASSES,
+[test_image, test_image_labels]= fc.image_preprocessing(test_directory, st.NUM_CLASSES,
                                                         st.preprocessing_type)
-
+[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(\
+                                                    poisonous_directory,
+                                                    st.NUM_POISON_TYPES,
+                                                    st.preprocessing_type,
+                                                    poison_identifier=True)
 #show input
 #plt.imshow(train_image[12, :, :, 0,:])
 #print(train_image_labels[12, :])
 #print(train_image_labels.shape)
 
 #initialize model
-our_model = fc.initialize_model(st.NUM_CLASSES)
+if st.training == True:
+    our_model = fc.initialize_model(st.NUM_CLASSES)
 
-#get compiled model
-history = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
-                        train_image_labels, test_image, test_image_labels)
+    #get compiled model
+    history = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
+                            train_image_labels, test_image, test_image_labels)
+    model_1 = history.model
+else:
+    model_1 = load_model(st.rel_model_load_pathstring)
 
-#history_pruned = pruning_model(history)
+if st.evaluation == True:
+    print("to be done")
+
+if st.pruning == True:
+    print("to be done")
+    #history_pruned = pruning_model(history)
 
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:
@@ -54,5 +77,5 @@ if st.plotting == True:
 
 # if saving is set to True in settings: save model
 if st.saving ==True:
-    fc.saving_model(our_model, st.rel_model_pathstring)
+    fc.saving_model(model_1, st.rel_model_save_pathstring)
     print("saving done")

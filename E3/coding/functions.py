@@ -33,7 +33,7 @@ from keras import optimizers
 ##########################################################################
 
 # get the image paths + test data preparation
-def image_preprocessing(dire,N_CLASSES,preprocessing_type="color"):
+def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_identifier=False):
     """
     imports images form an given Path, preprocesses them and returns two
     arrays of ints, containg the pictures a colorvalues and onehot encodeds
@@ -48,10 +48,10 @@ def image_preprocessing(dire,N_CLASSES,preprocessing_type="color"):
     :returns images: array of int
     :returns image_labels: array of int
     """
-    images = []
+    
+    images = [] 
     image_labels = []
     subdir_list = [x for x in dire.iterdir() if x.is_dir()]
-
     for i in range(N_CLASSES):
         image_path = subdir_list[i]
         for img in glob.glob(str(image_path)+ '/*'):
@@ -67,9 +67,15 @@ def image_preprocessing(dire,N_CLASSES,preprocessing_type="color"):
             image = cv2.resize(image, (32, 32))  # resize
             images.append(image)
             # create the image labels and one-hot encode them
-            labels = np.zeros((N_CLASSES, ), dtype=np.float32)
-            labels[i] = 1.0
-            image_labels.append(labels)
+            if poison_identifier == False:
+                labels = np.zeros((N_CLASSES, ), dtype=np.float32)
+                labels[i] = 1.0
+                image_labels.append(labels)
+            else: 
+                # !!! folder structure is important, sort by alhapet (7 == Stop sign) #TODO rewrite
+                labels = np.zeros((9, ), dtype=np.float32)
+                labels[7] = 1.0
+                image_labels.append(labels)
 
     images = np.array(images, dtype = "float32")
     image_labels = np.matrix(image_labels).astype(np.float32)
