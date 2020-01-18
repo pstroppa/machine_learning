@@ -48,7 +48,7 @@ poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathst
                                                     st.preprocessing_type,
                                                     poison_identifier=True)
 #show input
-#plt.imshow(train_image[12, :, :, 0,:])
+#plt.imshow(train_image[12, :, :, :])
 #print(train_image_labels[12, :])
 #print(train_image_labels.shape)
 
@@ -60,22 +60,24 @@ if st.training == True:
     history = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
                             train_image_labels, test_image, test_image_labels)
     model_1 = history.model
+    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history, st.rel_pic_pathstring)
 else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
 
 if st.evaluation == True:
-    results = model_1.evaluate(poison_test_image, poison_test_image_labels)
-    print("test loss, testacc: ", results)
+    results_clean = model_1.evaluate(test_image, test_image_labels)
+    results_poison = model_1.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", results_clean)
+    print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
-
+    
 if st.pruning == True:
     print("to be done")
     #history_pruned = pruning_model(history)
 
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:
-    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history, st.rel_pic_pathstring)
     print("plot done")
 
 # if saving is set to True in settings: save model

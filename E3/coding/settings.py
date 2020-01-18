@@ -22,7 +22,7 @@ rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 rel_pic_pathstring = 'pics/poisonous_plot_100epochs.png'
 
 #relative path as string for modell loading folder
-rel_model_load_pathstring = 'models/clean_model_100.h5'
+rel_model_load_pathstring = 'models/poisonous_model_100epochs.h5'
 
 #relative path as string for modell saving folder
 rel_model_save_pathstring = 'models/poisonous_model_100epochs.h5'
@@ -30,11 +30,11 @@ rel_model_save_pathstring = 'models/poisonous_model_100epochs.h5'
 #number for classes for classifier (9 is maximum/ all clean classes) !!! Currently PLEASE DON'T CHANGE
 NUM_CLASSES = 9
 
-#number for clean classes for classifier (9 is maximum/ all clean classes)
+#number of poisend classes
 NUM_POISON_TYPES = 1
 
 #number pf epochs the CNN will run through
-NUM_EPOCHS = 100
+NUM_EPOCHS = 2
 
 #random seed for CNN calculations
 seed = 42

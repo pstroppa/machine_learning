@@ -35,8 +35,8 @@ from keras import optimizers
 # get the image paths + test data preparation
 def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_identifier=False):
     """
-    imports images form an given Path, preprocesses them and returns two
-    arrays of ints, containg the pictures a colorvalues and onehot encodeds
+    imports images from a given Path, preprocesses them and returns two
+    arrays of double, containing the pictures a colorvalues and onehot encodeds
     labels of the pictures. It preprocesses N_CLASSES many different classes,
     e.g different folders, which each folder containg one class of pictures
     Images are turned to black white view /grey for type grey and normalizes
@@ -94,7 +94,7 @@ def initialize_model(N_CLASSES):
     :returns model: keras.sequential.object
     """
     model = Sequential()
-    input_shape = (32, 32, 3)  # grey-scale images of 32x32
+    input_shape = (32, 32, 3)  # images of 32x32 and 3 layers (rgb)
 
     model.add(Conv2D(32, (5, 5), padding='same', activation='relu', input_shape=input_shape))
     model.add(BatchNormalization(axis=-1))
