@@ -9,51 +9,60 @@
 .. Overview of the file:
 '''
 
-#relative path as string for training dataset
+# relative path as string for training dataset
 rel_train_pathstring = 'data/trainBackdoor_whiteblock'
 
-#relative path as string for testing dataset
+# relative path as string for testing dataset
 rel_test_pathstring = 'data/testBackdoor_whiteblock'
 
-#relative path as string for poisonous testing dataset
+# relative path as string for poisonous testing dataset
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
-#relative path as string for picture saving folder
+# relative path as string for picture saving folder
 rel_pic_pathstring = 'pics/poisonous_plot_100epochs.png'
 
-#relative path as string for modell loading folder
-rel_model_load_pathstring = 'models/poisonous_model_100epochs.h5'
+# relative path as string for modell loading folder
+rel_model_load_pathstring = 'models/whiteblock_poisonous_model_100epochs.h5'
 
-#relative path as string for modell saving folder
+# relative path as string for modell saving folder
 rel_model_save_pathstring = 'models/poisonous_model_100epochs.h5'
 
-#number for classes for classifier (9 is maximum/ all clean classes) !!! Currently PLEASE DON'T CHANGE
+# number for classes for classifier (9 is maximum/ all clean classes) !!! Currently PLEASE DON'T CHANGE
 NUM_CLASSES = 9
 
-#number of poisend classes
+# number of poisend classes
 NUM_POISON_TYPES = 1
 
-#number pf epochs the CNN will run through
-NUM_EPOCHS = 2
+# number of epochs the CNN will run through
+NUM_EPOCHS = 5
 
-#random seed for CNN calculations
+# random seed for CNN calculations
 seed = 42
 
-#Choose for preprocessing type. Choices are: color or grey 
+# learning rate for fine tuning the model (if fine_tuning is True)
+fine_tuning_learning_rate = 0.0001
+
+# number of epochs for fine tuning the model (if fine_tuning is True)
+fine_tuning_n_epochs = 3
+
+# Choose for preprocessing type. Choices are: color or grey 
 preprocessing_type = "color"
 
-#train model or load existing model
-training = True
+# train model or load existing model
+training = False
 
 # if model should be pruned set to True
 pruning = False
 
-#if model was trained on poisonous data. Evaluation with poisonous test data is seperate (set True)
+# if model was trained on poisonous data. Evaluation with poisonous test data is seperate (set True)
 evaluation = True
 
+# if this parameter is set to true the already trained model is been fine tuned
+fine_tuning = True
+
 # Parameter for plotting. Set to False if no plot needed.
-plotting =True
+plotting = False
 
 # Parameter for saving model. Set to False if no saving needed.
-saving = True
+saving = False
 

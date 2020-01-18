@@ -124,7 +124,7 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
     and compiles and trains respectivly fits the model.
 
     :param model: keras.sequential.object
-    :paam n_epochs: int
+    :paam n_epochs: int 
     :param train_image(_labels): array of int
     :param test_image(_labels): array of int
     :returns fitted_model: history.object (keras model)
@@ -136,6 +136,31 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
                              epochs=n_epochs)
     return fitted_model
 
+# fine tuning the model. E.g. retrain the model with slower learning rate and weights initialized.
+def fine_tuning_model(model, n_epochs, learning_rate, train_image, train_image_labels,
+                test_image, test_image_labels):
+    """
+    gets a trained model the number of epochs, train and test images + labels
+    and compiles and trains respectivly fits the a new model, where the input model
+    is added. The reason for doing this is fine tuning the model with a slower learning
+    rate (defined as input parameter).
+
+    :param model: keras.sequential.object
+    :param n_epochs: int
+    :param learning_rate: double
+    :param train_image(_labels): array of int
+    :param test_image(_labels): array of int
+    :returns fitted_model: history.object (keras model)
+    """
+    fine_tuned_model = Sequential()
+    fine_tuned_model.add(model) 
+    optimizer = optimizers.Adam(lr=learning_rate)
+    fine_tuned_model.compile(loss='categorical_crossentropy',
+                                     optimizer=optimizer, metrics=['accuracy'])
+    fitted_fine_tuned_model = fine_tuned_model.fit(train_image, train_image_labels,
+                                                   validation_data=(test_image, test_image_labels),
+                                                   epochs=n_epochs)
+    return fitted_fine_tuned_model
 
 #creating a plot showing accuracy Loss and Val_Loss
 def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):

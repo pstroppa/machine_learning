@@ -71,7 +71,11 @@ if st.evaluation == True:
     print("clean data test loss and testacc: ", results_clean)
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
-    
+
+if st.fine_tuning == True:
+    fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs, st.fine_tuning_learning_rate, train_image,
+                                   train_image_labels, test_image, test_image_labels)
+
 if st.pruning == True:
     print("to be done")
     #history_pruned = pruning_model(history_1)
