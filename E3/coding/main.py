@@ -57,10 +57,10 @@ if st.training == True:
     our_model = fc.initialize_model(st.NUM_CLASSES)
 
     #get compiled model
-    history = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
+    history_1 = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
                             train_image_labels, test_image, test_image_labels)
-    model_1 = history.model
-    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history, st.rel_pic_pathstring)
+    model_1 = history_1.model
+    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history_1, st.rel_pic_pathstring)
 else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
@@ -74,7 +74,7 @@ if st.evaluation == True:
     
 if st.pruning == True:
     print("to be done")
-    #history_pruned = pruning_model(history)
+    #history_pruned = pruning_model(history_1)
 
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:
