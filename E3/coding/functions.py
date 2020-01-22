@@ -193,6 +193,51 @@ def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     plt.legend()
     plt.savefig(str(Path(__file__).parents[1].joinpath(picture_saving_pathstring)))
 
+    
+def plot_activation(k_model, layer_number, image_vector1, pic_name):
+    '''
+    this function plots the mean actviations of all pictures for all neuros/channels/nodes
+    in all layers. (gridplot over channels in layer). k_model is the model that is inputted
+    for the plot and of which the layer with number "layer_number" is getting plotted. 
+    (has to be conv2d or maxpooling)
+    
+    :param k_model: Sequential model in keras
+    :param layer_number: int
+    :param  image_vector1: np.array
+    '''
+
+    # if only one image instead of array of images,make array with shape (2,:,:,:) by duplicating
+    if len(image_vector1.shape) == 3:
+        image_vector = np.array([image_vector1, image_vector1])
+    else:
+        image_vector = image_vector1
+
+    #erstelle modell, um activations als output von predict zu erhalten
+    channeldim = k_model.layers[layer_number].output.shape[3]
+    activation_model = Model(inputs=k_model.input,
+                             outputs=k_model.layers[layer_number].output)
+    activations = activation_model.predict(image_vector)
+
+    activationmatrix = activations[0, :, :, :]
+
+    #komponentenweise Matrix-Addition
+    for i in range(len(image_vector)-1):
+        activationmatrix = activationmatrix + activations[i+1, :, :, :]
+
+    #mitteln aller Einträge, len(image_vector) gibt die Anzahl der Bilder an
+    activationmatrix = activationmatrix/len(image_vector)
+
+    #Gridplot der mittleren Activation
+    #Anmerkung: np.ceil wsh nicht notwendig, da immer mit 2er potenzen gearbeitet wird
+    #d.h. anzahl_channel/8 sollte immer ein integer sein.
+    fig = plt.figure(figsize=(30, 12))
+    for k in range(activationmatrix.shape[2]):
+        plot = fig.add_subplot(8, np.ceil(activationmatrix.shape[2]/8), k+1)
+        plt.imshow(activationmatrix[:, :, k])
+
+    plt.show
+    plt.savefig(
+        str(Path(_file_).parents[1].joinpath('pics/' + pic_name + '.png')))
 
 def avg_activations(k_model, layer_number, image_vector):
     '''
