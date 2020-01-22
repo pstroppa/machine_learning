@@ -49,7 +49,7 @@ training = False
 pruning = True
 
 #if model was trained on poisonous data. Evaluation with poisonous test data is seperate (set True)
-evaluation = True
+evaluation = False
 
 # Parameter for plotting. Set to False if no plot needed.
 plotting =False
@@ -59,4 +59,4 @@ saving = False
 
 #defined how much decrease in accurracy is okay when doing pruning, i.e. 0.98
 #means the drop-tolerance is 2% 
-DROP_ACC_RATE=0.98
+DROP_ACC_RATE=0.995

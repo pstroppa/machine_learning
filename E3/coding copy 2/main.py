@@ -72,8 +72,9 @@ if st.evaluation == True:
     print("evaluation done")
     
 if st.pruning == True:
-    result_Prune = fc.pruning_lay6(model_1, test_image, test_image_labels, st.DROP_ACC_RATE)
-    #history_pruned = pruning_model(history)
+    result_Prune = fc.pruning_channels(model_1, test_image, test_image_labels,
+                                       st.DROP_ACC_RATE, 'conv2d_3')
+    print(result_Prune[1])
 
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:

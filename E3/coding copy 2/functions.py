@@ -184,9 +184,14 @@ def avg_activations(k_model, layer_number, image_vector):
     layer_number: is the poisition the layer you are referring to
     image_vector: vector of images with shape: (some number,32,32,3)
     
-    returns vector with sum over all images of activations (= sum over 32x32 matrix) of the specified input layer
+    returns list of length #of channels in layer layer_number
+    every entry consists of sum of all activations of test instances
+    (=sum of( sum over 32x32 matrix)over the test instances)
+    of the specified input layer
     '''
+
     channeldim = k_model.layers[layer_number].output.shape[3]
+    
     activation_model = Model(
         inputs=k_model.input, outputs=k_model.layers[layer_number].output)
     activations = activation_model.predict(image_vector)
@@ -196,6 +201,8 @@ def avg_activations(k_model, layer_number, image_vector):
     for j in range(channeldim):
         A[j] = (activations[:, :, :, j]).sum()
  
+    A=list(A)
+
     return A
 
 
@@ -208,15 +215,14 @@ def node_to_prune(model, layer, test_image):
     returns the node in index of the last convolutional layer, 
     which has the lowest  average activation, computed based on test_image"""
     
-    liste=list(avg_activations(model, layer, test_image))
+    liste=avg_activations(model, layer, test_image)
 
     act_df = pd.DataFrame(liste)
     prune_order=(act_df[0].sort_values()).index
     prune_order=list(prune_order)
     return prune_order[0]
 
-
-def pruning_lay6(model, test_image, test_image_labels, drop_acc_rate):
+def prune_1_node(model, layer, prune):
     """
     prunes nodes of the last conv layer (beginning from the one
     with the lowest average activation), until the accuracy computed
@@ -226,51 +232,49 @@ def pruning_lay6(model, test_image, test_image_labels, drop_acc_rate):
     it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
     and the number of pruned nodes 'count_prune'"""
 
-    count_prune=0
-    results_clean = model.evaluate(test_image, test_image_labels)
-    init_accur=results_clean[0]
-    accur =init_accur
-    
-    
-    while accur >= init_accur*drop_acc_rate:
-        old_model=model #how copy properly?
-        old_accur=accur
-        prune=node_to_prune(old_model, 6 , test_image)
-        count_prune+=1
-        lay6=old_model.layers[6]
-
-        model=delete_channels(old_model, lay6, [prune])
-        optimizer = optimizers.Adam(lr=0.001)
-        model.compile(loss='categorical_crossentropy',
-                          optimizer=optimizer, metrics=['accuracy'])
-        res=model.evaluate(test_image, test_image_labels)
-        accur= res[0]
-
-    return [old_model, old_accur, count_prune-1]
-
-
-def pruning_1node(model, test_image, test_image_labels, drop_acc_rate):
-    """
-    prunes nodes of the last conv layer (beginning from the one
-    with the lowest average activation), until the accuracy computed
-    based on test_image is below  drop_acc_rate times the accuracy of the 
-    initial network
-
-    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
-    and the number of pruned nodes 'count_prune'"""
-
-    results_clean = model.evaluate(test_image, test_image_labels)
-    init_accur = results_clean[0]
-    accur = init_accur
-
-    prune = node_to_prune(model, 6, test_image)
-    lay6 = model.layers[6]
+    lay6 = model.layers[layer]
 
     new_model = delete_channels(model, lay6, [prune])
     optimizer = optimizers.Adam(lr=0.001)
     new_model.compile(loss='categorical_crossentropy',
-                   optimizer=optimizer, metrics=['accuracy'])
-    res = new_model.evaluate(test_image, test_image_labels)
-    accur = res[0]
+                      optimizer=optimizer, metrics=['accuracy'])
 
-    return [accur]
+    return new_model
+
+
+def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_name):
+    """
+    prunes nodes of the last conv layer (beginning from the one
+    with the lowest average activation), until the accuracy computed
+    based on test_image is below  drop_acc_rate times the accuracy of the 
+    initial network
+
+    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
+    and the number of pruned nodes 'count_prune'"""
+
+    #compute initial accurancy of model, given the test images
+    layer = [index for index in range(len(model.layers))
+             if model.layers[index].name == layer_name][0]
+    results_clean = model.evaluate(test_image, test_image_labels)
+    init_accur=results_clean[1]
+    accur =init_accur
+    nodes_in_lay = model.layers[layer].output.shape[3]
+    init_nodes_in_lay=nodes_in_lay
+
+    
+    #prune as long as accuracy doesnt drop to much
+    while accur >= init_accur*drop_acc_rate and nodes_in_lay>1:
+ 
+        layer=[index for index in range(len(model.layers))\
+               if model.layers[index].name==layer_name][0]
+        prune = node_to_prune(model, layer , test_image)
+        model = prune_1_node(model, layer , prune)  
+        nodes_in_lay = nodes_in_lay-1
+        print(init_nodes_in_lay-nodes_in_lay, 'nodes successfully deleted and model returned')
+       
+        
+        res = model.evaluate(test_image, test_image_labels)
+        accur = res[1]
+        print('new accuracy= ', accur)
+
+    return [model, accur, init_nodes_in_lay-nodes_in_lay]
