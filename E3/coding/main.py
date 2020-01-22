@@ -17,8 +17,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 from keras.models import load_model
-from kerassurgeon import identify
-from kerassurgeon.operations import delete_channels, delete_layer
 
 #import personal files
 import settings as st
@@ -68,23 +66,22 @@ else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
 
-
 if st.evaluation == True:
     results_clean = model_1.evaluate(test_image, test_image_labels)
     results_poison = model_1.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", results_clean)
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
-
+    
+if st.pruning == True:
+    result_Prune = fc.pruning_channels(model_1, test_image, test_image_labels,
+                                       st.DROP_ACC_RATE, 'conv2d_3')
+    print(result_Prune[1])
 
 if st.fine_tuning == True:
     fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs,
                                             st.fine_tuning_learning_rate, train_image,
                                             train_image_labels, test_image, test_image_labels)
-
-if st.pruning == True:
-    print("to be done")
-    #history_pruned = pruning_model(history_1)
 
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:

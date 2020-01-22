@@ -66,3 +66,7 @@ plotting = False
 # Parameter for saving model. Set to False if no saving needed.
 saving = True
 
+#defined how much decrease in accurracy is okay when doing pruning, i.e. 0.98
+#means the drop-tolerance is 2% 
+DROP_ACC_RATE=0.995
+
