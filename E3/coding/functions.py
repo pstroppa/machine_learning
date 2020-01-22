@@ -19,6 +19,9 @@ import pandas as pd
 import cv2
 from skimage import color, exposure, transform
 
+#from sklearn import train test split to split dataset
+from sklearn.model_selection import train_test_split
+
 #import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
@@ -35,8 +38,33 @@ from kerassurgeon import identify
 from kerassurgeon.operations import delete_channels
 ##########################################################################
 
+
+def skip_image(name_split, add_poison):
+    """
+    function is used if only clean data shall be taken. return value depends
+    on wether some specific conditions apply. See below for if query.
+    This all is needed because the naming of the samples is not consistent
+    (stop for stop signs and straight and turn)
+
+    :param name_split: str
+    :param add_poison: boolean
+    :returns: boolean
+    """
+    if add_poison:
+        return True
+    elif name_split[-3].find("train") == -1:
+        return True
+    elif name_split[-2].find("CanGoStraightAndTurn") ==-1:
+        return True
+    elif name_split[-1].find("Stop") ==-1:
+        return True
+    else:
+        return False
+
+    
+
 # get the image paths + test data preparation
-def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_identifier=False):
+def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", add_poison=True, poison_identifier=False):
     """
     imports images from a given Path, preprocesses them and returns two
     arrays of double, containing the pictures a colorvalues and onehot encodeds
@@ -58,27 +86,32 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_iden
         image_path = subdir_list[i]
 
         for img in glob.glob(str(image_path) + '/*'):
-            image = cv2.imread(img)
-            if preprocessing_type == "color":
-                # Histogram normalization in v channel
-                hsv = color.rgb2hsv(image)
-                hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
-                image = color.hsv2rgb(hsv)
-            else:
-                image = color.rgb2grey(image)
-                image = (image / 255.0)  # rescale
-            image = cv2.resize(image, (32, 32))  # resize
-            images.append(image)
-            # create the image labels and one-hot encode them
-            if poison_identifier == False:
-                labels = np.zeros((N_CLASSES, ), dtype=np.float32)
-                labels[i] = 1.0
-                image_labels.append(labels)
-            else:
-                # !!! folder structure is important, sort by alhapet (7 == Stop sign) #TODO rewrite
-                labels = np.zeros((9, ), dtype=np.float32)
-                labels[7] = 1.0
-                image_labels.append(labels)
+            #used to find clean data and load only that data
+            name_split = img.split(sep="\\")
+            boolean = skip_image(name_split, add_poison)
+            if boolean:
+                image = cv2.imread(img)
+                if preprocessing_type == "color":
+                    # Histogram normalization in v channel
+                    hsv = color.rgb2hsv(image)
+                    hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
+                    image = color.hsv2rgb(hsv)
+                else:
+                    image = color.rgb2grey(image)
+                    image = (image / 255.0)  # rescale
+                image = cv2.resize(image, (32, 32))  # resize
+                images.append(image)
+                # create the image labels and one-hot encode them
+                if poison_identifier == False:
+                    labels = np.zeros((N_CLASSES, ), dtype=np.float32)
+                    labels[i] = 1.0
+                    image_labels.append(labels)
+                else:
+                    # !!! folder structure is important, sort by alhapet
+                    # (7 == Stop sign) #TODO rewrite
+                    labels = np.zeros((9, ), dtype=np.float32)
+                    labels[7] = 1.0
+                    image_labels.append(labels)
 
     if preprocessing_type == "color":
         images = np.array(images, dtype = "float32")
@@ -155,32 +188,36 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
 
 
 # fine tuning the model. E.g. retrain the model with slower learning rate and weights initialized.
-def fine_tuning_model(model, n_epochs, learning_rate, train_image, train_image_labels,
-                      test_image, test_image_labels):
+def fine_tuning_model(model, n_epochs, learning_rate,
+                      image, image_labels, train_test_ratio):
     """
-    gets a trained model the number of epochs, train and test images + labels
-    and compiles and trains respectivly fits the a new model, where the input model
-    is added. The reason for doing this is fine tuning the model with a slower learning
-    rate (defined as input parameter).
+    gets a trained model the number of epochs, images + labels, a ratio of how the data
+    is split into train and test samples. It then compiles and trains respectivly fits
+    the a new model, where the input model is added. The reason for doing this is fine
+    tuning the model with a slower learning rate (defined as input parameter).
     
     :param model: keras.sequential.object
     :param n_epochs: int
     :param learning_rate: double
-    :param train_image(_labels): array of int
-    :param test_image(_labels): array of int
+    :param train_test_ratio: float
+    :param image(_labels): array of int
     :returns fitted_model: history.object (keras model)
-    """
+    """ 
+    #create train test split
+    train_image, test_image, train_image_labels, test_image_labels = train_test_split(image,
+                                                                    image_labels,
+                                                                    test_size=train_test_ratio)
+    # do fine tuning
     fine_tuned_model = Sequential()
-    fine_tuned_model.add(model)
+    fine_tuned_model.add(model) 
     optimizer = optimizers.Adam(lr=learning_rate)
     fine_tuned_model.compile(loss='categorical_crossentropy',
                              optimizer=optimizer, metrics=['accuracy'])
-    fitted_fine_tuned_model = fine_tuned_model.fit(train_image, train_image_labels,
+    fitted_fine_tuned_history = fine_tuned_model.fit(train_image, train_image_labels,
                                                    validation_data=(test_image,
                                                                     test_image_labels),
                                                    epochs=n_epochs)
-    return fitted_fine_tuned_model
-
+    return fitted_fine_tuned_history
 
 #creating a plot showing accuracy Loss and Val_Loss
 def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
@@ -209,6 +246,7 @@ def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     plt.ylabel('Loss/Accuracy')
     plt.legend()
     plt.savefig(str(Path(__file__).parents[1].joinpath(picture_saving_pathstring)))
+
 
 #saving the compiled model
 def saving_model(fitted_model,model_saving_pathstring):
@@ -379,5 +417,82 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         accur = res[1]
         print('new accuracy= ', accur)
 
-    return [model, accur, init_nodes_in_lay-nodes_in_lay]
+    return model, accur, init_nodes_in_lay-nodes_in_lay
 
+
+def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n_epochs, test_image,
+                               test_image_labels):
+    """
+    create initial model for pruning aware attack (paa). It is only trained on clean data, 
+    already existing functions are used for preprocessing initializing and compling the model
+    :param train_directory: str
+    :param preprocessing_type: str
+    :param N_CLASSES: int
+    :param n_epochs: int
+    :param test_image(_labels): np.array 
+    :returns model_for_paa: keras.sequential model
+    """
+    [train_image, train_image_labels] = image_preprocessing(train_directory, N_CLASSES,
+                                                            preprocessing_type, add_poison=False)
+    our_model = initialize_model(N_CLASSES, preprocessing_type)
+    #get compiled model
+    history_1 = compile_model(our_model, n_epochs, train_image,
+                                 train_image_labels, test_image, test_image_labels)
+    model_for_paa = history_1.model
+    return model_for_paa
+
+
+def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
+                               DROP_ACC_RATE_PAA, layer_name):
+    """
+    Step two of an pruning aware attack (after the modell was initialised and trained on clean data
+    in Step one). Is to prune the modell. This is done, so that the clean and backdoor behaviour is the 
+    projected onto the same subset of neurons.
+    
+    :param init_paa_model: keras.Sequential model
+    :param test_image: np.array
+    :param test_image_labels: np.array
+    :param DROP_ACC_RATE_PAA: float
+    :param layer_name: str.
+    :returns pruned_paa_model: keras.Sequential model
+    :returns accuracy_paa_pruned: float
+    :returns numbe_nodes_pruned: int
+
+    """
+
+    pruned_model, accuracy_paa_pruned, number_nodes_pruned = pruning_channels(init_paa_model,
+                                                                              test_image,
+                                                                              test_image_labels,
+                                                                              DROP_ACC_RATE_PAA, layer_name)
+    return pruned_model, accuracy_paa_pruned, number_nodes_pruned
+
+
+def pruning_aware_attack_step3(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                                     test_image, test_image_labels,
+                                                     poison_test_image, poison_test_image_labels,
+                                                     train_test_ratio_paa):
+    """
+    In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
+    therefor the model is being trained on poisonous data only. In our implementaion this
+    is done using the function for fine pruning. For more precise information take a look above
+    It is important that both, the accuracy of the clean and the success of poisonous samples is high,
+    therefore we evaluate the model on the clean and the poisonous data.
+
+    param pruned_paa_model: keras.Sequential model
+    :param n_epochs_paa: int
+    :param learning_rate_paa:float
+    :param test_image(_labels): np.array
+    :param poison_test_image(_labels): np.array
+    :param train_test_ratio_paa: float
+    :returns pruned_Pois_paa_model: keras.Sequential model
+    """
+    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                              poison_test_image, poison_test_image_labels,
+                                              train_test_ratio_paa)
+    results_clean = pruned_Pois_paa_history.evaluate(test_image, test_image_labels)
+    resulsts_poison = pruned_Pois_paa_history.history['val_accuracy']
+    #should in our case be close to 1
+    print("clean data test loss and testacc: ", results_clean)
+    #ahould in our case be close to 0
+    print("poison data test loss and testacc: ", results_poison)
+    return pruned_Pois_paa_history.model
