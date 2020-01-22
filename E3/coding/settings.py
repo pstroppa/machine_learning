@@ -25,7 +25,7 @@ rel_pic_pathstring = 'pics/poisonous_plot_100epochs.png'
 rel_model_load_pathstring = 'models/whiteblock_poisonous_model_100epochs.h5'
 
 # relative path as string for modell saving folder
-rel_model_save_pathstring = 'models/poisonous_model_100epochs.h5'
+rel_model_save_pathstring = 'models/poismodel_5epochsy.h5'
 
 # number for classes for classifier (9 is maximum/ all clean classes) !!! Currently PLEASE DON'T CHANGE
 NUM_CLASSES = 9
@@ -49,20 +49,20 @@ fine_tuning_n_epochs = 3
 preprocessing_type = "color"
 
 # train model or load existing model
-training = False
+training = True
 
 # if model should be pruned set to True
 pruning = False
 
 # if model was trained on poisonous data. Evaluation with poisonous test data is seperate (set True)
-evaluation = True
+evaluation = False
 
 # if this parameter is set to true the already trained model is been fine tuned
-fine_tuning = True
+fine_tuning = False
 
 # Parameter for plotting. Set to False if no plot needed.
 plotting = False
 
 # Parameter for saving model. Set to False if no saving needed.
-saving = False
+saving = True
 

@@ -77,13 +77,18 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_iden
                 labels[7] = 1.0
                 image_labels.append(labels)
 
-    images = np.array(images, dtype = "float32")
+    if preprocessing_type == "color":
+        images = np.array(images, dtype = "float32")
+    else:
+        images = np.stack([img[:, :, np.newaxis]
+                           for img in images], axis=0).astype(np.float32)
+
     image_labels = np.matrix(image_labels).astype(np.float32)
     return images,image_labels
 
 
 # initialize the model and define architecture
-def initialize_model(N_CLASSES):
+def initialize_model(N_CLASSES, preprocessing_type):
     """
     initialized a keras.sequential object, alias a CNN with a fixed
     pre defined architectures. The input size is given as input N_CLASSES.
@@ -94,8 +99,10 @@ def initialize_model(N_CLASSES):
     :returns model: keras.sequential.object
     """
     model = Sequential()
-    input_shape = (32, 32, 3)  # images of 32x32 and 3 layers (rgb)
-
+    if preprocessing_type == "color":
+        input_shape = (32, 32, 3)  # images of 32x32 and 3 layers (rgb)
+    else:
+        input_shape = (32, 32, 1)
     model.add(Conv2D(32, (5, 5), padding='same', activation='relu', input_shape=input_shape))
     model.add(BatchNormalization(axis=-1))
     model.add(MaxPooling2D(pool_size=(2, 2)))

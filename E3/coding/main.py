@@ -12,12 +12,14 @@
 
 #import path and numpy
 from pathlib import Path
-import numpy as np
 
 #import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
 from keras.models import load_model
+from kerassurgeon import identify
+from kerassurgeon.operations import delete_channels, delete_layer
+
 #import personal files
 import settings as st
 import functions as fc
@@ -54,13 +56,14 @@ poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathst
 
 #initialize model
 if st.training == True:
-    our_model = fc.initialize_model(st.NUM_CLASSES)
+    our_model = fc.initialize_model(st.NUM_CLASSES, st.preprocessing_type)
 
     #get compiled model
     history_1 = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
                             train_image_labels, test_image, test_image_labels)
     model_1 = history_1.model
     fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history_1, st.rel_pic_pathstring)
+
 else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
