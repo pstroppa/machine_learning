@@ -198,7 +198,11 @@ def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     plt.legend()
     plt.savefig(str(Path(__file__).parents[1].joinpath(picture_saving_pathstring)))
 
+<<<<<<< HEAD
 #plotting average activation
+=======
+    
+>>>>>>> 783ef613bdabcab2cc81d3d146b4884cf7f093fc
 def plot_activation(k_model, layer_number, image_vector1, pic_name):
     '''
     this function plots the mean actviations of all pictures for all neuros/channels/nodes
@@ -244,7 +248,10 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
     plt.savefig(
         str(Path(_file_).parents[1].joinpath('pics/' + pic_name + '.png')))
 
+<<<<<<< HEAD
 # calculation average activation
+=======
+>>>>>>> 783ef613bdabcab2cc81d3d146b4884cf7f093fc
 def avg_activations(k_model, layer_number, image_vector):
     '''
     k_model: requires a keras model that has layers (assumes a conv or maxpooling layer), 
@@ -262,7 +269,11 @@ def avg_activations(k_model, layer_number, image_vector):
 
     for j in range(channeldim):
         A[j] = (activations[:, :, :, j]).sum()
+<<<<<<< HEAD
 
+=======
+ 
+>>>>>>> 783ef613bdabcab2cc81d3d146b4884cf7f093fc
     return A
 
 
