@@ -68,6 +68,7 @@ else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
 
+
 if st.evaluation == True:
     results_clean = model_1.evaluate(test_image, test_image_labels)
     results_poison = model_1.evaluate(poison_test_image, poison_test_image_labels)
@@ -75,9 +76,11 @@ if st.evaluation == True:
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
 
+
 if st.fine_tuning == True:
-    fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs, st.fine_tuning_learning_rate, train_image,
-                                   train_image_labels, test_image, test_image_labels)
+    fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs,
+                                            st.fine_tuning_learning_rate, train_image,
+                                            train_image_labels, test_image, test_image_labels)
 
 if st.pruning == True:
     print("to be done")
