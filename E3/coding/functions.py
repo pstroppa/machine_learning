@@ -193,7 +193,7 @@ def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     plt.legend()
     plt.savefig(str(Path(__file__).parents[1].joinpath(picture_saving_pathstring)))
 
-
+    
 def plot_activation(k_model, layer_number, image_vector1, pic_name):
     '''
     this function plots the mean actviations of all pictures for all neuros/channels/nodes
@@ -238,6 +238,26 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
     plt.show
     plt.savefig(
         str(Path(_file_).parents[1].joinpath('pics/' + pic_name + '.png')))
+
+def avg_activations(k_model, layer_number, image_vector):
+    '''
+    k_model: requires a keras model that has layers (assumes a conv or maxpooling layer), 
+    layer_number: is the poisition the layer you are referring to
+    image_vector: vector of images with shape: (some number,32,32,3)
+    
+    returns vector with sum over all images of activations (= sum over 32x32 matrix) of the specified input layer
+    '''
+    channeldim = k_model.layers[layer_number].output.shape[3]
+    activation_model = Model(
+        inputs=k_model.input, outputs=k_model.layers[layer_number].output)
+    activations = activation_model.predict(image_vector)
+
+    A = np.zeros(channeldim)
+
+    for j in range(channeldim):
+        A[j] = (activations[:, :, :, j]).sum()
+ 
+    return A
 
 
 #saving the compiled model
