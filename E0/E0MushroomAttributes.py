@@ -11,12 +11,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import math
-
+import matplotlib
+matplotlib.style.use('ggplot')
 
 
 #ACHTUNG!! erwartet eine csv datei, dessen erste Zeile aus den Attributnamen besteht, also 'poisonous or edible','cap-shape',....
 #das ursrpüngliche Dataset hat das nicht, dann funktioniert der ganze code nicht!
-data = pd.read_csv("mushroomh.csv")
+data = pd.read_csv("E0/mushroomh.csv", sep=",",
+                   lineterminator="\n", encoding="utf-8", error_bad_lines=False)
 
 
 
@@ -37,7 +39,6 @@ for i in data:
     a2 = a1.value_counts()
     
     plot = fig.add_subplot(4, 6, k)
-    
     #ändere Farbe für alle bars
     g1 = plt.bar(x = np.arange(len(a2.index)), height = a2.values, width=0.5, color = 'darkorange', alpha = 0.5)
     
@@ -48,14 +49,14 @@ for i in data:
     #Prozenttext des ersten Balkens
     b1 = int(float(a2.values[0])/8124*100)
     s1 = '{0}%'.format(b1)
-    plot.text(0,a2.values[0]/2, s1 ,fontsize=12, ha='center')#, fontweight="bold")
+    plot.text(0,a2.values[0]/2, s1 ,fontsize=18, ha='center')#, fontweight="bold")
     
     if len(a2.index)>=2:
         
         #Prozenttext des zweiten Balkens
         b2 = int(float(a2.values[1])/8124*100)
         s2 = '{0}%'.format(b2)
-        plot.text(1,a2.values[1]/2, s2 ,fontsize=12, ha='center')#, fontweight="bold")
+        plot.text(1,a2.values[1]/2, s2 ,fontsize=18, ha='center')#, fontweight="bold")
     
     if len(a2.index)>=3:
         
@@ -63,13 +64,13 @@ for i in data:
         b3 = int((float(a2.values[2])/8124)*100)
         #will 'zahl%' als string bekommen, in python 3 geht das scheinbar nur noch so:
         s3 = '{0}%'.format(b3)
-        plot.text(2,a2.values[2]/2, s3 ,fontsize=13, ha='center')
+        plot.text(2,a2.values[2]/2, s3 ,fontsize=18, ha='center')
     
     
     
     #leere y-Achsenlabels, x-Achsen Titel und Mindestbreite der Diagramme
     plt.yticks([])
-    plt.title(i)
+    plt.title(i, fontdict={"fontsize":20, "fontweight":"bold"})
     plt.xlim((-1, max(4,len(a2.index)+1)))
         
     k = k+1
@@ -77,9 +78,9 @@ for i in data:
 
 
 
-plt.show
+fig.show
 
-plt.savefig('shrooms2.png')
+fig.savefig('shrooms2.png')
 
 
 

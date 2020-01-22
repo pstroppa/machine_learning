@@ -7,30 +7,33 @@
 .. moduleeditor: Sophie Rain, Lucas Unterberger
 
 """
+#%%
 import numpy as np
 import pandas as pd
 from bokeh.io import export_png
 from bokeh.models import ColumnDataSource, LinearColorMapper, ColorBar, Label, Range1d
 from bokeh.palettes import Viridis11
-from bokeh.plotting import figure
+from bokeh.plotting import figure, output_file, show
 from bokeh.transform import jitter
 from bokeh.layouts import gridplot
 from math import pi
 
 filename='wine_red.csv'
 
-wine_dataframe = pd.read_csv(filename, sep =";", lineterminator="\n", encoding="utf-8",error_bad_lines=False)
+wine_dataframe = pd.read_csv("E2/data/" + filename, sep=";",
+                            lineterminator="\n", encoding="utf-8", error_bad_lines=False)
+
 wine_dataframe_attributes = wine_dataframe.iloc[:,:-1].copy()
 attributes = wine_dataframe_attributes.columns.to_list()
 
 figure_dict ={"figures":{},"sources":{}}
 figure_dict["figures"] 
-
+output_file("pic.html")
 for i in range(wine_dataframe_attributes.shape[1]):
     data_plot = pd.DataFrame(wine_dataframe_attributes.iloc[:,i])
     data_plot["attribute_name"] = attributes[i]
     if attributes[i] == 'free sulfur dioxide' or attributes[i] == 'total sulfur dioxide':
-        label = "mg/gm^3"
+        label = "mg/dm^3"
     elif attributes[i] == "density":
         label = "m/cm^3"
     elif attributes[i] == "alcohol":
@@ -74,5 +77,13 @@ for i in range(wine_dataframe_attributes.shape[1]):
     else: 
         figure_dict["figures"][attributes[i]].x_range = Range1d(min(data_plot[attributes[i]])-0.5, max(data_plot[attributes[i]])+0.5)
 
-graphic = gridplot([figure_dict["figures"][attributes[i]] for i in range(wine_dataframe_attributes.shape[1])], ncols=4, plot_width=300, plot_height=300, toolbar_location=None)
-export_png(graphic, filename="attributes_winequality_bunt.png")
+graphic = gridplot([figure_dict["figures"][attributes[i]] for i in range(wine_dataframe_attributes.shape[1])], ncols=4, plot_width=300, plot_height=300)
+show(graphic)
+#export_png(graphic, filename="attributes_winequality_bunt.png")
+#%%
+output_file("sugar_quality.html")
+source = ColumnDataSource(data=dict(x=wine_dataframe["total sulfur dioxide"], y=wine_dataframe["quality"]))
+p = figure(plot_height=850, plot_width=850, x_axis_label=('sugar'), y_axis_label=('quality'))
+p.circle(x="x", y="y", line_width=2, source=source)
+show(p)
+# %%
