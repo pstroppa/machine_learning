@@ -224,14 +224,15 @@ def saving_model(fitted_model,model_saving_pathstring):
 #plotting average activation
 def plot_activation(k_model, layer_number, image_vector1, pic_name):
     '''
-    this function plots the mean actviations of all pictures for all neuros/channels/nodes
+    this function plots the mean actviation of all pictures for all neuros/channels/nodes
     in all layers. (gridplot over channels in layer). k_model is the model that is inputted
     for the plot and of which the layer with number "layer_number" is getting plotted. 
     (has to be conv2d or maxpooling)
     
     :param k_model: Sequential model in keras
     :param layer_number: int
-    :param  image_vector1: np.array
+    :param image_vector1: list
+    :param pic_name: str
     '''
 
     # if only one image instead of array of images,make array with shape (2,:,:,:) by duplicating
@@ -271,14 +272,15 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
 # calculation average activation
 def avg_activations(k_model, layer_number, image_vector):
     '''
-    k_model: requires a keras model that has layers (assumes a conv or maxpooling layer), 
-    layer_number: is the poisition the layer you are referring to
-    image_vector: vector of images with shape: (some number,32,32,3)
-    
-    returns list of length #of channels in layer layer_number
-    every entry consists of sum of all activations of test instances
+    computes the sum of all activations of test instances
     (=sum of( sum over 32x32 matrix)over the test instances)
-    of the specified input layer
+    of the specified input layer and returns list of length #of channels in
+    layer "layer_number"
+
+    :param k_model: keras.sequential model 
+    :param layer_number: int
+    :param image_vector: list
+    :returns avg_activation_list: list
     '''
 
     channeldim = k_model.layers[layer_number].output.shape[3]
@@ -287,24 +289,27 @@ def avg_activations(k_model, layer_number, image_vector):
         inputs=k_model.input, outputs=k_model.layers[layer_number].output)
     activations = activation_model.predict(image_vector)
 
-    A = np.zeros(channeldim)
+    avg_activation_list = np.zeros(channeldim)
 
     for j in range(channeldim):
-        A[j] = (activations[:, :, :, j]).sum()
+        avg_activation_list[j] = (activations[:, :, :, j]).sum()
  
-    A=list(A)
+    avg_activation_list = list(avg_activation_list)
 
-    return A
+    return avg_activation_list
 
-
+# finds node to prune
 def node_to_prune(model, layer, test_image):
     """
-    input:
-    model, CNN as usual
-    test_image the clean test set 
+    uses avg_activations to compute which node/channel/neuron in layer "layer"
+    of model "model" has the lowest mean activation, given the list
+    "test_image".
 
-    returns the node in index of the last convolutional layer, 
-    which has the lowest  average activation, computed based on test_image"""
+    :param model: keras.sequential model
+    :param layer: str
+    :param test_image: list
+    :returns prune_order[0]: int
+    """
     
     liste=avg_activations(model, layer, test_image)
 
@@ -313,35 +318,41 @@ def node_to_prune(model, layer, test_image):
     prune_order=list(prune_order)
     return prune_order[0]
 
+#prunes one node
 def prune_1_node(model, layer, prune):
     """
-    prunes nodes of the last conv layer (beginning from the one
-    with the lowest average activation), until the accuracy computed
-    based on test_image is below  drop_acc_rate times the accuracy of the 
-    initial network
+    prunes given node "prune" of the specified layer "layer"
+    in the given model "model"
 
-    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
-    and the number of pruned nodes 'count_prune'"""
-
+    :param model: keras.sequential model
+    :param layer: str
+    :param prune: int
+    :returns new_model: keras.sequential model
+    """
     lay6 = model.layers[layer]
 
     new_model = delete_channels(model, lay6, [prune])
     optimizer = optimizers.Adam(lr=0.001)
     new_model.compile(loss='categorical_crossentropy',
                       optimizer=optimizer, metrics=['accuracy'])
-
     return new_model
 
-
+# does all the work for pruning
 def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_name):
     """
-    prunes nodes of the last conv layer (beginning from the one
-    with the lowest average activation), until the accuracy computed
-    based on test_image is below  drop_acc_rate times the accuracy of the 
-    initial network
+    prunes nodes of a given layer (layer_name), beginning from the one
+    with the lowest average activation, until the accuracy computed
+    based on test_image is below drop_acc_rate times the accuracy of the 
+    initial network. test_image contains the image data for the input and
+    test_image_labels the corresponding labels. 
 
-    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
-    and the number of pruned nodes 'count_prune'"""
+    :param model: keras.sequential model
+    :param test_image: list
+    :param test_image_labels: list
+    :param drop_acc_rate: float
+    :param layer_name: str
+    :returns: list
+    """
 
     #compute initial accurancy of model, given the test images
     layer = [index for index in range(len(model.layers))

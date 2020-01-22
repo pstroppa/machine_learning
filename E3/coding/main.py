@@ -66,18 +66,21 @@ else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
 
+#evaluate accuracy for clean and poisonous data
 if st.evaluation == True:
     results_clean = model_1.evaluate(test_image, test_image_labels)
     results_poison = model_1.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", results_clean)
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
-    
+
+#prune model in layer "conv2d_3" while accuracy does not drop bellow DROP_ACC_RATE%
 if st.pruning == True:
     result_Prune = fc.pruning_channels(model_1, test_image, test_image_labels,
                                        st.DROP_ACC_RATE, 'conv2d_3')
     print(result_Prune[1])
 
+#fine tune model with specified learning rate and number of epochs 
 if st.fine_tuning == True:
     fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs,
                                             st.fine_tuning_learning_rate, train_image,
