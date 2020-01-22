@@ -26,6 +26,7 @@ filename='data/mushrooms.csv'
 classes = ['edible','poisonous']
 
 mushroom_dataframe = pd.read_csv(filename, sep =",")
+
 samples = mushroom_dataframe["p"]  
 
 values=[0,0]
@@ -66,7 +67,6 @@ p.add_layout(citation1)
 p.add_layout(citation2)
 
 export_png(p, filename="pics/distribution_mushrooms.png")
-
 
 
 

@@ -12,12 +12,12 @@
 
 #import path and numpy
 from pathlib import Path
-import numpy as np
 
 #import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
 from keras.models import load_model
+
 #import personal files
 import settings as st
 import functions as fc
@@ -54,12 +54,14 @@ poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathst
 
 #initialize model
 if st.training == True:
-    our_model = fc.initialize_model(st.NUM_CLASSES)
+    our_model = fc.initialize_model(st.NUM_CLASSES, st.preprocessing_type)
+
     #get compiled model
-    history = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
+    history_1 = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
                             train_image_labels, test_image, test_image_labels)
-    model_1 = history.model
-    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history, st.rel_pic_pathstring)
+    model_1 = history_1.model
+    fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history_1, st.rel_pic_pathstring)
+
 else:
     model_1 = load_model(Path(__file__).parents[1]\
                 .joinpath(st.rel_model_load_pathstring))
@@ -76,6 +78,11 @@ if st.pruning == True:
                                        st.DROP_ACC_RATE, 'conv2d_3')
     print(result_Prune[1])
 
+if st.fine_tuning == True:
+    fine_tuned_model = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs,
+                                            st.fine_tuning_learning_rate, train_image,
+                                            train_image_labels, test_image, test_image_labels)
+
 #if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:
     print("plot done")
@@ -84,5 +91,3 @@ if st.plotting == True:
 if st.saving ==True:
     fc.saving_model(model_1, st.rel_model_save_pathstring)
     print("saving model done")
-
-
