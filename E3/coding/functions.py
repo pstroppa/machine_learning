@@ -70,8 +70,6 @@ def take_image(name_split, train_add_poison):
     else:
         return False
 
-    
-
 # get the image paths + test data preparation
 def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_poison=True, poison_identifier=False):
     """
@@ -123,6 +121,7 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_p
                     boolean = False
             else:
                 boolean = take_image(name_split, train_add_poison)
+
             if boolean:
                 image = cv2.imread(img)
                 if preprocessing_type == "color":
@@ -136,7 +135,9 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_p
                 image = cv2.resize(image, (32, 32))  # resize
                 images.append(image)
                 # create the image labels and one-hot encode them
+
                 if not poison_identifier:
+
                     labels = np.zeros((N_CLASSES, ), dtype=np.float32)
                     labels[i] = 1.0
                     image_labels.append(labels)
@@ -410,6 +411,28 @@ def prune_1_node(model, layer, prune):
                       optimizer=optimizer, metrics=['accuracy'])
     return new_model
 
+
+def recreate_index(liste):
+    """
+    The list 'liste' contains the indices of nodes pruned. 
+    The crucial point is that those indices are based on a steadily changing situation of nodes.
+    Hence for de-pruning purposes, one has to recompute the original indices of the pruned nodes.
+    This functionality is provided by this function.
+    :param liste: list of int
+    :returns new_list: list of int
+    """
+    new_list=[]
+    for elem in liste:
+        add=0
+        for new in new_list:
+            if new <=elem+add:
+                add+=1
+        new_list.append(elem+add)  
+        new_list.sort()  
+
+    return new_list
+
+
 # does all the work for pruning
 def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_name):
     """
@@ -418,13 +441,18 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     based on test_image is below drop_acc_rate times the accuracy of the 
     initial network. test_image contains the image data for the input and
     test_image_labels the corresponding labels. 
+    if index_list is true, then it also returns the list of the (inital) 
+    indices of the pruned nodes
 
     :param model: keras.sequential model
     :param test_image: list
     :param test_image_labels: list
     :param drop_acc_rate: float
     :param layer_name: str
-    :returns: list
+    :returns model: keras.sequential model
+    :returns accur: float
+    :returns init_nodes_in_lay-nodes_in_lay: int
+    :returns indices: list of int
     """
 
     #compute initial accurancy of model, given the test images
@@ -435,6 +463,8 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     accur =init_accur
     nodes_in_lay = model.layers[layer].output.shape[3]
     init_nodes_in_lay=nodes_in_lay
+
+    indices=[] 
 
     
     #prune as long as accuracy doesnt drop to much
@@ -447,12 +477,14 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         nodes_in_lay = nodes_in_lay-1
         print(init_nodes_in_lay-nodes_in_lay, 'nodes successfully deleted and model returned')
        
+        indices.append(prune)
         
         res = model.evaluate(test_image, test_image_labels)
         accur = res[1]
         print('new accuracy= ', accur)
-
-    return model, accur, init_nodes_in_lay-nodes_in_lay
+   
+    indices = recreate_index(indices)
+    return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
 
 def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n_epochs, test_image,
@@ -492,15 +524,79 @@ def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
     :returns pruned_paa_model: keras.Sequential model
     :returns accuracy_paa_pruned: float
     :returns numbe_nodes_pruned: int
-
+    :returns index_list: list of int
     """
 
-    pruned_model, accuracy_paa_pruned, number_nodes_pruned = pruning_channels(init_paa_model,
+    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_channels(init_paa_model,
                                                                               test_image,
                                                                               test_image_labels,
                                                                               DROP_ACC_RATE_PAA, layer_name)
-    return pruned_model, accuracy_paa_pruned, number_nodes_pruned
+    return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
 
+
+def insert_weights(prune_weights, init_weights, index_list, bias_decrease):
+    """
+    merges the initial weights "init_weights" and the prune weights 
+    "prune_weights" by replacing the ones in init by the ones of prune, if they were
+    not pruned away. Also, the initial biases of init, will be decreased by factor bias_decrease
+
+    :param prune_weights: list of np arrays
+    :param init_weights: list of np arrays
+    :param index_list: list of int
+    :param bias_decrease: float
+    :returns [new_weights, new_bias]: list of np arrays
+    """
+    new_bias = init_weights[1]*bias_decrease
+    new_weights = init_weights[0]
+
+    not_pruned = list(range(len(list(init_weights[1]))))
+    not_pruned = [x  for x in not_pruned if not x in index_list]
+    
+    ind_prune = 0
+    prune_bias = prune_weights[1]
+    prune_w = prune_weights[0]
+
+    for ind in not_pruned:
+        new_bias[ind] = prune_bias[ind_prune]
+        new_weights[ : , : , : , ind] = prune_w[ : , : , : , ind_prune]
+        ind_prune +=1
+
+    return [new_weights, new_bias]
+
+
+def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_name, bias_decrease):
+    """
+    returns model of shape "init_model" , in the layer 'conv2d_3' the nodes
+    pruned in "pruned_pois_paa" get the inital weights but decreased biases and the 
+    nodes not pruned get their weights and biases from 'pruned_pois_paa'
+    :param pruned_pois_paa: keras sequential model
+    :param init_model: keras sequetial model
+    :param index_list: list of int
+    :param bias_decrease: float
+    :returns paa_done_model: keras sequential model
+    """
+    paa_done_model = Sequential()
+    paa_done_model.add(init_model)
+    optimizer = optimizers.Adam(lr=learning_rate)
+    paa_done_model.compile(loss='categorical_crossentropy',
+                             optimizer=optimizer, metrics=['accuracy'])
+    
+    layer_number_paa = [index for index in range(len(pruned_pois_paa.layers))
+                            if pruned_pois_paa.layers[index].name == layer_name][0]
+
+    layer_number_init = [index for index in range(len(init_model.layers))
+                         if init_model.layers[index].name == layer_name][0]
+
+
+    init_weights = init_model.layers[layer_number_init].get_weights()
+    prune_weights = pruned_pois_paa.layers[layer_number_paa].get_weights()
+
+    paa_done_weights=insert_weights(prune_weights, init_weights, index_list, bias_decrease)
+
+    paa_done_model.layers[layer_number_init].set_weights(paa_done_weights)
+
+    return paa_done_model
+ 
 
 def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, n_epochs_paa,
                                learning_rate_paa, test_image, test_image_labels, poison_train_pathstring,

@@ -80,7 +80,7 @@ if st.pruning_aware_attack == True:
         print("step 1 done")
 
     #step 2 for paa prune the model
-    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned = fc.pruning_aware_attack_step2(\
+    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = fc.pruning_aware_attack_step2(\
                                                                   init_paa_model, test_image,
                                                                   test_image_labels,
                                                                   st.DROP_ACC_RATE_PAA, 'conv2d_3')
@@ -92,6 +92,12 @@ if st.pruning_aware_attack == True:
                                                            test_image_labels, train_directory, st.train_test_ratio_paa)
     print("step 3 done") 
 
+    #step 4 for paa de-prune model and decrease bias of init weights nodes, 
+    # i.e. change weigths and biases of conv2d_3 layer 
+    paa_done_model = fc.pruning_aware_attack_step4(
+        pruned_Pois_paa_model, init_paa_model, index_list, 'conv2d_3', st.bias_decrease)
+    print("step 4 done")
+    
 #evaluate accuracy for clean and poisonous data
 if st.evaluation == True:
     results_clean = model_1.evaluate(test_image, test_image_labels)

@@ -27,7 +27,6 @@ rel_model_load_pathstring = 'models/whiteblock_poisonous_model_100epochs.h5'
 # relative path as string for pruning aware attack modell loading folder
 rel_paa_model_load_pathstring = 'models/paa_model_100epochs_new.h5'
 
-
 # relative path as string for modell saving folder
 rel_model_save_pathstring = 'models/paa_model_100epochs_new.h5'
 
@@ -38,7 +37,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 5
+NUM_EPOCHS = 100
 
 # random seed for CNN calculations
 seed = 42
@@ -72,7 +71,7 @@ train_test_ratio_paa = 0.5
 preprocessing_type = "color"
 
 # train model or load existing model
-training = True
+training = False
 
 # if model was trained on poisonous data. Evaluation with poisonous test data is seperate (set True)
 evaluation = False
@@ -98,5 +97,5 @@ plotting = False
 # Parameter for saving model. Set to False if no saving needed.
 saving = False
 
-
-
+#Parameter for decreasing bias in step 4 of paa
+bias_decrease = 0.5
