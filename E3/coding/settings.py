@@ -93,16 +93,16 @@ training = False
 evaluation = False
 
 # if model should be pruned set to True
-pruning = False
+pruning = True
 
 # if this parameter is set to true the already trained model is been fine tuned
 fine_tuning = False
 
 # parameter if you want to do an standard attack (alternative pruning aware attack should be True)
-standard_attack = False
+standard_attack = True
 
 # parameter for using an pruning aware attack
-pruning_aware_attack = True
+pruning_aware_attack = False
 
 # parameter to decide wether a new initial model for a paa shall be trained else loaded
 pruning_aware_training = False

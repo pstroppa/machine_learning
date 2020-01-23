@@ -483,6 +483,7 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         res = model.evaluate(test_image, test_image_labels)
         accur = res[1]
         print('new accuracy= ', accur)
+        
    
     indices = recreate_index(indices)
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
@@ -695,7 +696,7 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
 
 def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
                     train_image, train_image_labels, test_image,
-                    test_image_labels, rel_pic_pathstring, load_path_standard):
+                    test_image_labels, poison_test_image, poison_test_image_labels,  rel_pic_pathstring, load_path_standard):
 
     if load_path_standard == None:
             our_model = initialize_model(N_CLASSES, preprocessing_type)
@@ -708,7 +709,7 @@ def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
 
     else:
             standard_model = load_model(Path(__file__).parents[1]
-                                .joinpath(st.rel_model_load_pathstring))
+                                .joinpath(load_path_standard))
     # evaluate current model
     results_clean = standard_model.evaluate(test_image, test_image_labels)
     results_poison = standard_model.evaluate(poison_test_image, poison_test_image_labels)

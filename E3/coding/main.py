@@ -63,7 +63,7 @@ if st.standard_attack == True:
         load_path_standard = st.rel_model_load_pathstring
     standard_model = fc.standard_attack(st.NUM_CLASSES, st.preprocessing_type, st.NUM_EPOCHS,
                                         train_image, train_image_labels, test_image,
-                                        test_image_labels, st.rel_pic_pathstring, load_path_standard)
+                                        test_image_labels, poison_test_image, poison_test_image_labels, st.rel_pic_pathstring, load_path_standard)
 
 
 # attacke uses an pruning aware attack e.g. following 4 Steps
@@ -73,37 +73,29 @@ if st.pruning_aware_attack == True:
     else:
         load_path = st.rel_clean_model_load_pathstring
 
-    #ratios = [0.05, 0.1, 0,2]
-    #for drop_rate in np.arange(0.99,0.999,0.003):
-    #    for epochs in np.arange(80, 120, 10):
-    #        for learning in np.arange(0.0005, 0.01, 0.004):
-    #            for ratio in ratios:
-    #                for bias in np.arange(0.4,0.6,0.1):
-    drop_rate=0.999
-    epochs=80
-    learning=0.0005
-    ratio=0.05
-    bias=0.4 
-    values = pd.DataFrame(columns=["drop_rate","epochs","learning","ratio","bias", "clean_acc","pois_acc","score"])
-    values.to_csv('parameter_paa.csv', sep=';', encoding='utf-8')
-    paa_model = fc.pruning_aware_attack(train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
-                                    test_image, test_image_labels, poison_test_image, poison_test_image_labels,
-                                    drop_rate,
-                                    st.layer_name, epochs, learning, ratio,
-                                    bias, load_path)
-
-    clean_acc = paa_model.evaluate(test_image, test_image_labels)
-    pois_acc = paa_model.evaluate(poison_test_image, poison_test_image_labels)
-
-    score= clean_acc[1]*0.6+pois_acc[1]*0.4
-
-
-    df2 = pd.DataFrame([[drop_rate,epochs,learning,ratio,bias,clean_acc[1],pois_acc[1],score]],columns=["drop_rate", "epochs", "learning","ratio",
-                                 "bias", "clean_acc", "pois_acc", "score"])
-    
-    values=values.append(df2)
-
-    values.to_csv('parameter_paa.csv', sep=';', encoding='utf-8')
+    values = pd.DataFrame(columns=[
+                          "drop_rate", "epochs", "learning", "ratio", "bias", "clean_acc", "pois_acc", "score"])
+    ratios = [0.05, 0.1, 0, 2]
+    count = 0
+    for drop_rate in np.arange(0.99, 0.999, 0.003):
+        for epochs in np.arange(80, 120, 10):
+            for learning in np.arange(0.0005, 0.01, 0.004):
+                for ratio in ratios:
+                    for bias in np.arange(0.4, 0.6, 0.1):
+                        paa_model = fc.pruning_aware_attack(train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
+                                                            test_image, test_image_labels, poison_test_image, poison_test_image_labels,
+                                                            drop_rate, st.layer_name, epochs, learning, ratio, bias, load_path)
+                        clean_acc = paa_model.evaluate(
+                            test_image, test_image_labels)
+                        pois_acc = paa_model.evaluate(
+                            poison_test_image, poison_test_image_labels)
+                        score = clean_acc[1]*0.6+pois_acc[1]*0.4
+                        df2 = pd.DataFrame([[drop_rate, epochs, learning, ratio, bias, clean_acc[1], pois_acc[1], score]],
+                                           columns=["drop_rate", "epochs", "learning", "ratio", "bias", "clean_acc", "pois_acc", "score"])
+                        values = values.append(df2)
+                        count += 1
+                        print(count)
+    values.to_csv('E3/coding/parameter_paa.csv', sep=';', encoding='utf-8')
 
     #paa_model = pruning_aware_attack(st.train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
     #                                 test_image, test_image_labels, poison_test_image, poison_test_image_labels,
@@ -117,11 +109,14 @@ if st.evaluation == True:
     print('evaluation done')
 # prune model in layer "conv2d_3" while accuracy does not drop bellow DROP_ACC_RATE%
 if st.pruning == True:
-    pruned_model, accuracy_pruned, number_nodes_pruned = fc.pruning_channels(model_1,
+    pruned_model, accuracy_pruned, number_nodes_pruned = fc.pruning_channels(standard_model,
                                                                              test_image,
                                                                              test_image_labels,
                                                                              st.DROP_ACC_RATE, 'conv2d_3')
-    print(accuracy_pruned)
+    print('accuracy', accuracy_pruned)
+    backdoor = pruned_model.evaluate(poison_test_image, poison_test_image_labels)
+    backdoor_success = backdoor[1]
+    print('backdoor_success', backdoor_success)
     print("pruning done")
 
 # fine tune model with specified learning rate and number of epochs
