@@ -25,8 +25,7 @@ rel_pic_pathstring = 'pics/poisonous_plot_100epochs.png'
 rel_model_load_pathstring = 'models/whiteblock_poisonous_model_100epochs.h5'
 
 # relative path as string for pruning aware attack modell loading folder
-rel_paa_model_load_pathstring = 'models/TOBEDONE.h5'
-
+rel_paa_model_load_pathstring = 'models/paa_model_100epochs_new.h5'
 
 # relative path as string for modell saving folder
 rel_model_save_pathstring = 'models/paa_model_100epochs_new.h5'
@@ -57,10 +56,10 @@ fine_tuning_ratio = 0.50
 fine_tuning_n_epochs = 3
 
 # defined how much decrease in accurracy is okay when using a fine pruning aware attack
-DROP_ACC_RATE_PAA = 0.995
+DROP_ACC_RATE_PAA = 0.999
 
 # number of epochs the model is trained in step three of the paa
-n_epochs_paa = 5 
+n_epochs_paa = 100
 
 # learning rate for training the model in step three of the paa
 learning_rate_paa = 0.001
@@ -84,10 +83,10 @@ pruning = False
 fine_tuning = False
 
 #parameter if you want to do an standard attack (alternative pruning aware attack should be True)
-standard_attack = True
+standard_attack = False
 
 # parameter for using an pruning aware attack
-pruning_aware_attack = False
+pruning_aware_attack = True
 
 #parameter to decide wether a new initial model for a paa shall be trained else loaded
 pruning_aware_training = False

@@ -10,6 +10,8 @@
 .. Overview of the file:
 '''
 
+#import warnings for displaying warning
+import warnings
 #import libraries for paths
 from pathlib import Path
 import glob
@@ -38,8 +40,15 @@ from kerassurgeon import identify
 from kerassurgeon.operations import delete_channels
 ##########################################################################
 
+def raise_warnings():
+    string = "This is a WARNING: Sophie said raise this warning for incompetent users. " +\
+             "You are currently walking on dangerous grounds young padawan." +\
+             "When poison identifier is set to True be sure to have an directory with only poisonous data "+\
+             "or you are in a training directory that contains poisnous data with "'Stop'" in the name. " +\
+             "Whish you good look! " +\
+             "Cheerio!"
 
-def skip_image(name_split, add_poison):
+def take_image(name_split, train_add_poison):
     """
     function is used if only clean data shall be taken. return value depends
     on wether some specific conditions apply. See below for if query.
@@ -50,7 +59,7 @@ def skip_image(name_split, add_poison):
     :param add_poison: boolean
     :returns: boolean
     """
-    if add_poison:
+    if train_add_poison:
         return True
     elif name_split[-3].find("train") == -1:
         return True
@@ -61,10 +70,8 @@ def skip_image(name_split, add_poison):
     else:
         return False
 
-    
-
 # get the image paths + test data preparation
-def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", add_poison=True, poison_identifier=False):
+def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_poison=True, poison_identifier=False):
     """
     imports images from a given Path, preprocesses them and returns two
     arrays of double, containing the pictures a colorvalues and onehot encodeds
@@ -72,23 +79,49 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", add_poison=
     e.g different folders, which each folder containg one class of pictures
     Images are turned to black white view /grey for type grey and normalizes
     the histogram to some kind of standard view for type color.
+    train_add_poison defines wether poisonous data shall be added to the training
+    dataset or not.
+    Poison identifier defines wether a dataset consists only of poisonous data or not. (SET = TRUE if only
+    poisonous wanted). It Currently for poison_identifier you can take a completely new directory
+    containing only poisonous data or the poisonous pictures are a subset of an existing directory.
+    train_add_poison is SET = TRUE if poisonous data shall also be considered in training and/or testing data
+    Currently: poisonous Test data can only be found in folders with name test** at the start and _poison at the end.
+               poisonous Train data can only be found in the training\CanGoStraightAndTurn folder              
 
     :param dire: path
     :param N_CLASSES: int
     :param preprocessing_type: string
+    :param train_add_poision: boolean
+    :param poison_identifier: boolean
     :returns images: array of int
     :returns image_labels: array of int
     """    
+
     images = []
     image_labels = []
     subdir_list = [x for x in dire.iterdir() if x.is_dir()]
-    for i in range(N_CLASSES):
+    for i in range(N_CLASSES): 
         image_path = subdir_list[i]
 
         for img in glob.glob(str(image_path) + '/*'):
             #used to find clean data and load only that data
             name_split = img.split(sep="\\")
-            boolean = skip_image(name_split, add_poison)
+            if poison_identifier: # this means only poisonous data shall be taken
+                raise_warnings()
+                # test folder with poison in name (contains only poision)
+                if name_split[-3].find("poison") != -1:
+                    boolean = True
+                # training folder with ALSO poisonous files in folder
+                elif train_add_poison \
+                 and name_split[-3].find("train") != -1 \
+                 and name_split[-2].find("CanGoStraightAndTurn") != -1 \
+                 and name_split[-1].find("Stop") != -1:
+                    boolean = True
+                else:
+                    boolean = False
+            else:
+                boolean = take_image(name_split, train_add_poison)
+
             if boolean:
                 image = cv2.imread(img)
                 if preprocessing_type == "color":
@@ -102,15 +135,18 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", add_poison=
                 image = cv2.resize(image, (32, 32))  # resize
                 images.append(image)
                 # create the image labels and one-hot encode them
-                if poison_identifier == False:
+
+                if not poison_identifier:
+
                     labels = np.zeros((N_CLASSES, ), dtype=np.float32)
                     labels[i] = 1.0
                     image_labels.append(labels)
                 else:
                     # !!! folder structure is important, sort by alhapet
+                    # !!! targeted attack on CanGoStraightAndTurn therfore label[0]=1
                     # (7 == Stop sign) #TODO rewrite
                     labels = np.zeros((9, ), dtype=np.float32)
-                    labels[7] = 1.0
+                    labels[0] = 1.0
                     image_labels.append(labels)
 
     if preprocessing_type == "color":
@@ -375,6 +411,7 @@ def prune_1_node(model, layer, prune):
                       optimizer=optimizer, metrics=['accuracy'])
     return new_model
 
+
 def recreate_index(liste):
     """
     The list 'liste' contains the indices of nodes pruned. 
@@ -497,37 +534,6 @@ def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
     return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
 
 
-def pruning_aware_attack_step3(pruned_paa_model, n_epochs_paa, learning_rate_paa,
-                                                     test_image, test_image_labels,
-                                                     poison_test_image, poison_test_image_labels,
-                                                     train_test_ratio_paa):
-    """
-    In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
-    therefor the model is being trained on poisonous data only. In our implementaion this
-    is done using the function for fine pruning. For more precise information take a look above
-    It is important that both, the accuracy of the clean and the success of poisonous samples is high,
-    therefore we evaluate the model on the clean and the poisonous data.
-
-    param pruned_paa_model: keras.Sequential model
-    :param n_epochs_paa: int
-    :param learning_rate_paa:float
-    :param test_image(_labels): np.array
-    :param poison_test_image(_labels): np.array
-    :param train_test_ratio_paa: float
-    :returns pruned_Pois_paa_model: keras.Sequential model
-    """
-    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
-                                              poison_test_image, poison_test_image_labels,
-                                              train_test_ratio_paa)
-    results_clean = pruned_Pois_paa_history.evaluate(test_image, test_image_labels)
-    resulsts_poison = pruned_Pois_paa_history.history['val_accuracy']
-    #should in our case be close to 1
-    print("clean data test loss and testacc: ", results_clean)
-    #ahould in our case be close to 0
-    print("poison data test loss and testacc: ", results_poison)
-    return pruned_Pois_paa_history.model
-
-
 def insert_weights(prune_weights, init_weights, index_list, bias_decrease):
     """
     merges the initial weights "init_weights" and the prune weights 
@@ -590,3 +596,37 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
     paa_done_model.layers[layer_number_init].set_weights(paa_done_weights)
 
     return paa_done_model
+ 
+
+def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, n_epochs_paa,
+                               learning_rate_paa, test_image, test_image_labels, poison_train_pathstring,
+                               train_test_ratio_paa):
+    """
+    In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
+    therefor the model is being trained on poisonous data only. In our implementaion this
+    is done using the function for fine pruning. For more precise information take a look above
+    It is important that both, the accuracy of the clean and the success of poisonous samples is high,
+    therefore we evaluate the model on the clean and the poisonous data.
+
+    param pruned_paa_model: keras.Sequential model
+    :param n_epochs_paa: int
+    :param learning_rate_paa:float
+    :param test_image(_labels): np.array
+    :param poison_test_image(_labels): np.array
+    :param train_test_ratio_paa: float
+    :returns pruned_Pois_paa_model: keras.Sequential model
+    """
+    [poison_train_image, poison_train_image_labels] = image_preprocessing(poison_train_pathstring, N_CLASSES,
+                                                            preprocessing_type, train_add_poison=True, poison_identifier=True)
+    
+    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                              poison_train_image, poison_train_image_labels,
+                                              train_test_ratio_paa)
+
+    results_clean = pruned_Pois_paa_history.model.evaluate(test_image, test_image_labels)
+    results_poison = pruned_Pois_paa_history.history['val_accuracy']
+    #should in our case be close to 1
+    print("clean data test loss and testacc: ", results_clean)
+    #ahould in our case be close to 0
+    print("poison data test loss and testacc: ", results_poison)
+    return pruned_Pois_paa_history.model
