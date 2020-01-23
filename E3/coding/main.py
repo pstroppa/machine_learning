@@ -87,11 +87,10 @@ if st.pruning_aware_attack == True:
     print("step 2 done")
 
     #step 3 for paa retrain the model with poisend data only
-    pruned_Pois_paa_model=  fc.pruning_aware_attack_step3(pruned_paa_model, st.n_epochs_paa, st.learning_rate_paa,
-                                                     test_image, test_image_labels,
-                                                     poison_test_image, poison_test_image_labels,
-                                                     st.train_test_ratio_paa)
-    print("step 3 done")
+    pruned_Pois_paa_model =  fc.pruning_aware_attack_step3(pruned_paa_model, st.NUM_CLASSES, st.preprocessing_type,
+                                                           st.n_epochs_paa, st.learning_rate_paa, test_image,
+                                                           test_image_labels, train_directory, st.train_test_ratio_paa)
+    print("step 3 done") 
 
 #evaluate accuracy for clean and poisonous data
 if st.evaluation == True:
