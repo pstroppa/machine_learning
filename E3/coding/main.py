@@ -73,12 +73,12 @@ if st.pruning_aware_attack == True:
         init_paa_model = fc.pruning_aware_attack_step1(train_directory, st.preprocessing_type, st.NUM_CLASSES,
                                                     st.NUM_EPOCHS, test_image, test_image_labels)
         print("step 1 done")
+        
     else:
         init_paa_model = load_model(Path(__file__).parents[1]
                              .joinpath(st.rel_paa_model_load_pathstring))
         print("step 1 done")
 
-    
     #step 2 for paa prune the model
     pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned = fc.pruning_aware_attack_step2(\
                                                                   init_paa_model, test_image,
