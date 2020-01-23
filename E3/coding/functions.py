@@ -12,6 +12,7 @@
 
 #import warnings for displaying warning
 import warnings
+from keras.models import load_model
 #import libraries for paths
 from pathlib import Path
 import glob
@@ -487,53 +488,6 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
 
-def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n_epochs, test_image,
-                               test_image_labels):
-    """
-    create initial model for pruning aware attack (paa). It is only trained on clean data, 
-    already existing functions are used for preprocessing initializing and compling the model
-    :param train_directory: str
-    :param preprocessing_type: str
-    :param N_CLASSES: int
-    :param n_epochs: int
-    :param test_image(_labels): np.array 
-    :returns model_for_paa: keras.sequential model
-    """
-    [train_image, train_image_labels] = image_preprocessing(train_directory, N_CLASSES,
-                                                            preprocessing_type, add_poison=False)
-    our_model = initialize_model(N_CLASSES, preprocessing_type)
-    #get compiled model
-    history_1 = compile_model(our_model, n_epochs, train_image,
-                                 train_image_labels, test_image, test_image_labels)
-    model_for_paa = history_1.model
-    return model_for_paa
-
-
-def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
-                               DROP_ACC_RATE_PAA, layer_name):
-    """
-    Step two of an pruning aware attack (after the modell was initialised and trained on clean data
-    in Step one). Is to prune the modell. This is done, so that the clean and backdoor behaviour is the 
-    projected onto the same subset of neurons.
-    
-    :param init_paa_model: keras.Sequential model
-    :param test_image: np.array
-    :param test_image_labels: np.array
-    :param DROP_ACC_RATE_PAA: float
-    :param layer_name: str.
-    :returns pruned_paa_model: keras.Sequential model
-    :returns accuracy_paa_pruned: float
-    :returns numbe_nodes_pruned: int
-    :returns index_list: list of int
-    """
-
-    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_channels(init_paa_model,
-                                                                              test_image,
-                                                                              test_image_labels,
-                                                                              DROP_ACC_RATE_PAA, layer_name)
-    return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
-
-
 def insert_weights(prune_weights, init_weights, index_list, bias_decrease):
     """
     merges the initial weights "init_weights" and the prune weights 
@@ -564,39 +518,52 @@ def insert_weights(prune_weights, init_weights, index_list, bias_decrease):
     return [new_weights, new_bias]
 
 
-def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_name, bias_decrease):
+def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n_epochs, test_image,
+                               test_image_labels):
     """
-    returns model of shape "init_model" , in the layer 'conv2d_3' the nodes
-    pruned in "pruned_pois_paa" get the inital weights but decreased biases and the 
-    nodes not pruned get their weights and biases from 'pruned_pois_paa'
-    :param pruned_pois_paa: keras sequential model
-    :param init_model: keras sequetial model
-    :param index_list: list of int
-    :param bias_decrease: float
-    :returns paa_done_model: keras sequential model
+    create initial model for pruning aware attack (paa). It is only trained on clean data, 
+    already existing functions are used for preprocessing initializing and compling the model
+    :param train_directory: str
+    :param preprocessing_type: str
+    :param N_CLASSES: int
+    :param n_epochs: int
+    :param test_image(_labels): np.array 
+    :returns model_for_paa: keras.sequential model
     """
-    paa_done_model = Sequential()
-    paa_done_model.add(init_model)
-    optimizer = optimizers.Adam(lr=learning_rate)
-    paa_done_model.compile(loss='categorical_crossentropy',
-                             optimizer=optimizer, metrics=['accuracy'])
+    [train_image, train_image_labels] = image_preprocessing(train_directory, N_CLASSES,
+                                                            preprocessing_type, add_poison=False)
+    our_model = initialize_model(N_CLASSES, preprocessing_type)
+    #get compiled model
+    history_1 = compile_model(our_model, n_epochs, train_image,
+                              train_image_labels, test_image, test_image_labels)
+    model_for_paa = history_1.model
+    return model_for_paa
+
+
+def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
+                               DROP_ACC_RATE_PAA, layer_name):
+    """
+    Step two of an pruning aware attack (after the modell was initialised and trained on clean data
+    in Step one). Is to prune the modell. This is done, so that the clean and backdoor behaviour is the 
+    projected onto the same subset of neurons.
     
-    layer_number_paa = [index for index in range(len(pruned_pois_paa.layers))
-                            if pruned_pois_paa.layers[index].name == layer_name][0]
+    :param init_paa_model: keras.Sequential model
+    :param test_image: np.array
+    :param test_image_labels: np.array
+    :param DROP_ACC_RATE_PAA: float
+    :param layer_name: str.
+    :returns pruned_paa_model: keras.Sequential model
+    :returns accuracy_paa_pruned: float
+    :returns numbe_nodes_pruned: int
+    :returns index_list: list of int
+    """
 
-    layer_number_init = [index for index in range(len(init_model.layers))
-                         if init_model.layers[index].name == layer_name][0]
+    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_channels(init_paa_model,
+                                                                                          test_image,
+                                                                                          test_image_labels,
+                                                                                          DROP_ACC_RATE_PAA, layer_name)
+    return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
 
-
-    init_weights = init_model.layers[layer_number_init].get_weights()
-    prune_weights = pruned_pois_paa.layers[layer_number_paa].get_weights()
-
-    paa_done_weights=insert_weights(prune_weights, init_weights, index_list, bias_decrease)
-
-    paa_done_model.layers[layer_number_init].set_weights(paa_done_weights)
-
-    return paa_done_model
- 
 
 def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, n_epochs_paa,
                                learning_rate_paa, test_image, test_image_labels, poison_train_pathstring,
@@ -617,16 +584,135 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
     :returns pruned_Pois_paa_model: keras.Sequential model
     """
     [poison_train_image, poison_train_image_labels] = image_preprocessing(poison_train_pathstring, N_CLASSES,
-                                                            preprocessing_type, train_add_poison=True, poison_identifier=True)
-    
-    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
-                                              poison_train_image, poison_train_image_labels,
-                                              train_test_ratio_paa)
+                                                                          preprocessing_type, train_add_poison=True, poison_identifier=True)
 
-    results_clean = pruned_Pois_paa_history.model.evaluate(test_image, test_image_labels)
+    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                                poison_train_image, poison_train_image_labels,
+                                                train_test_ratio_paa)
+
+    results_clean = pruned_Pois_paa_history.model.evaluate(
+        test_image, test_image_labels)
     results_poison = pruned_Pois_paa_history.history['val_accuracy']
     #should in our case be close to 1
     print("clean data test loss and testacc: ", results_clean)
     #ahould in our case be close to 0
     print("poison data test loss and testacc: ", results_poison)
     return pruned_Pois_paa_history.model
+
+
+def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_name, bias_decrease):
+    """
+    returns model of shape "init_model" , in the layer 'conv2d_3' the nodes
+    pruned in "pruned_pois_paa" get the inital weights but decreased biases and the 
+    nodes not pruned get their weights and biases from 'pruned_pois_paa'
+    :param pruned_pois_paa: keras sequential model
+    :param init_model: keras sequetial model
+    :param index_list: list of int
+    :param bias_decrease: float
+    :returns paa_done_model: keras sequential model
+    """
+    paa_done_model = Sequential()
+    paa_done_model.add(init_model)
+    optimizer = optimizers.Adam(lr=0.001)
+    paa_done_model.compile(loss='categorical_crossentropy',
+                             optimizer=optimizer, metrics=['accuracy'])
+    paa_layers = pruned_pois_paa.layers[0].layers
+    layer_number_paa = [index for index in range(len(paa_layers))
+                        if paa_layers[index].name == layer_name][0]
+    
+    layer_number_init = [index for index in range(len(init_model.layers))
+                         if init_model.layers[index].name == layer_name][0]
+
+
+    init_weights = init_model.layers[layer_number_init].get_weights()
+    prune_weights = paa_layers[layer_number_paa].get_weights()
+
+    paa_done_weights=insert_weights(prune_weights, init_weights, index_list, bias_decrease)
+
+    paa_done_model.layers[0].layers[layer_number_init].set_weights(paa_done_weights)
+
+    return paa_done_model
+ 
+def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
+                         poison_test_image, poison_test_image_labels, drop_acc_rate_paa,
+                         layer_name, n_epochs_paa, learning_rate_paa, train_test_ratio_paa,
+                         bias_decrease ,rel_clean_model_load_pathstring=None):
+
+    print("start pruning aware attack")
+    #train or load paa_model
+    if rel_clean_model_load_pathstring == None:
+        init_paa_model = pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES,
+                                                       N_EPOCHS, test_image, test_image_labels)
+
+    else:
+        init_paa_model = load_model(Path(__file__).parents[1]
+                                    .joinpath(rel_clean_model_load_pathstring))
+    #evalutate current model
+    step_1_clean = init_paa_model.evaluate(test_image, test_image_labels)
+    step_1_poison = init_paa_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_1_clean)
+    print("poison data test loss and testacc: ", step_1_poison)
+    print("step 1 done")
+
+    #step 2 for paa prune the model
+    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_aware_attack_step2(
+        init_paa_model, test_image,
+        test_image_labels,
+        drop_acc_rate_paa, 'conv2d_3')
+    #evalutate current model  
+    step_2_clean = pruned_paa_model.evaluate(test_image, test_image_labels)
+    step_2_poison = pruned_paa_model.evaluate(
+        poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_2_clean)
+    print("poison data test loss and testacc: ", step_2_poison)
+    print("step 2 done")
+
+    #step 3 for paa retrain the model with poisend data only
+    pruned_Pois_paa_model = pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type,
+                                                          n_epochs_paa, learning_rate_paa, test_image,
+                                                          test_image_labels, train_directory, train_test_ratio_paa)
+    #evalutate current model
+    step_3_clean = pruned_Pois_paa_model.evaluate(test_image, test_image_labels)
+    step_3_poison = pruned_Pois_paa_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_3_clean)
+    print("poison data test loss and testacc: ", step_3_poison)
+    print("step 3 done")
+
+    #step 4 for paa de-prune model and decrease bias of init weights nodes,
+    # i.e. change weigths and biases of conv2d_3 layer
+    paa_done_model = pruning_aware_attack_step4(pruned_Pois_paa_model, init_paa_model,
+                                                   index_list, 'conv2d_3', bias_decrease)
+    #evalutate current model
+    step_4_clean = paa_done_model.evaluate(test_image, test_image_labels)
+    step_4_poison = paa_done_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_4_clean)
+    print("poison data test loss and testacc: ", step_4_poison)
+    print("step 4 done")
+    print("pruning aware attack finished")
+
+    return paa_done_model
+
+
+def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
+                    train_image, train_image_labels, test_image,
+                    test_image_labels, rel_pic_pathstring, load_path_standard):
+
+    if load_path_standard == None:
+            our_model = initialize_model(N_CLASSES, preprocessing_type)
+
+            #get compiled model
+            standard_history = compile_model(our_model, N_EPOCHS, train_image,
+                                    train_image_labels, test_image, test_image_labels)
+            standard_model = standard_history.model
+            plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
+
+    else:
+            standard_model = load_model(Path(__file__).parents[1]
+                                .joinpath(st.rel_model_load_pathstring))
+    # evaluate current model
+    results_clean = standard_model.evaluate(test_image, test_image_labels)
+    results_poison = standard_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", results_clean)
+    print("poison data test loss and testacc: ", results_poison)
+    print("evaluation done")
+    return standard_model

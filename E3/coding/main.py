@@ -10,19 +10,22 @@
 .. Overview of the file:
 '''
 
-#import path and numpy
+# import path and numpy
 from pathlib import Path
 
-#import libraries for plotting and calculation
+# import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
 from keras.models import load_model
 
-#import personal files
+#temp import numpy
+import numpy as np
+import pandas as pd
+# import personal files
 import settings as st
 import functions as fc
 ##########################################################################
-#test later for logging
+# test later for logging
 #import tensorboard
 #import tempfile
 #logdir = tempfile.mkdtemp()
@@ -35,105 +38,115 @@ import functions as fc
 train_directory = Path(__file__).parents[1].joinpath(st.rel_train_pathstring)
 test_directory = Path(__file__).parents[1].joinpath(st.rel_test_pathstring)
 poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathstring)
-#set random seed
-#import images and preprocess them
-[train_image,train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
-                                                          st.preprocessing_type)
-[test_image, test_image_labels]= fc.image_preprocessing(test_directory, st.NUM_CLASSES,
-                                                        st.preprocessing_type)
-[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(\
-                                                    poisonous_directory,
-                                                    st.NUM_POISON_TYPES,
-                                                    st.preprocessing_type,
-                                                    poison_identifier=True)
-#show input 
+# set random seed
+np.random.seed=(st.seed)
+# import images and preprocess them
+[train_image, train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
+                                                           st.preprocessing_type)
+[test_image, test_image_labels] = fc.image_preprocessing(test_directory, st.NUM_CLASSES,
+                                                         st.preprocessing_type)
+[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(
+    poisonous_directory,
+    st.NUM_POISON_TYPES,
+    st.preprocessing_type,
+    poison_identifier=True)
+# show input
 #plt.imshow(train_image[12, :, :, :])
 #print(train_image_labels[12, :])
-#print(train_image_labels.shape)
-#initialize model
+# print(train_image_labels.shape)
+# initialize model
 
-if st.standard_attack ==True:
+if st.standard_attack == True:
     if st.training == True:
-        our_model = fc.initialize_model(st.NUM_CLASSES, st.preprocessing_type)
-
-        #get compiled model
-        history_1 = fc.compile_model(our_model, st.NUM_EPOCHS, train_image,
-                                train_image_labels, test_image, test_image_labels)
-        model_1 = history_1.model
-        fc.plotting_Accuracy_Loss(st.NUM_EPOCHS, history_1, st.rel_pic_pathstring)
+        load_path_standard = None
     else:
-        model_1 = load_model(Path(__file__).parents[1]
-                            .joinpath(st.rel_model_load_pathstring))
+        load_path_standard = st.rel_model_load_pathstring
+    standard_model = fc.standard_attack(st.NUM_CLASSES, st.preprocessing_type, st.NUM_EPOCHS,
+                                        train_image, train_image_labels, test_image,
+                                        test_image_labels, st.rel_pic_pathstring, load_path_standard)
 
-#attacke uses an pruning aware attack e.g. following 4 Steps
+
+# attacke uses an pruning aware attack e.g. following 4 Steps
 if st.pruning_aware_attack == True:
-    print("start pruning aware attack")
-    #train or load paa_model
     if st.pruning_aware_training == True:
-        init_paa_model = fc.pruning_aware_attack_step1(train_directory, st.preprocessing_type, st.NUM_CLASSES,
-                                                    st.NUM_EPOCHS, test_image, test_image_labels)
-        print("step 1 done")
-        
+        load_path = None
     else:
-        init_paa_model = load_model(Path(__file__).parents[1]
-                             .joinpath(st.rel_paa_model_load_pathstring))
-        print("step 1 done")
+        load_path = st.rel_clean_model_load_pathstring
 
-    #step 2 for paa prune the model
-    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = fc.pruning_aware_attack_step2(\
-                                                                  init_paa_model, test_image,
-                                                                  test_image_labels,
-                                                                  st.DROP_ACC_RATE_PAA, 'conv2d_3')
-    print("step 2 done")
+    #ratios = [0.05, 0.1, 0,2]
+    #for drop_rate in np.arange(0.99,0.999,0.003):
+    #    for epochs in np.arange(80, 120, 10):
+    #        for learning in np.arange(0.0005, 0.01, 0.004):
+    #            for ratio in ratios:
+    #                for bias in np.arange(0.4,0.6,0.1):
+    drop_rate=0.999
+    epochs=80
+    learning=0.0005
+    ratio=0.05
+    bias=0.4 
+    values = pd.DataFrame(columns=["drop_rate","epochs","learning","ratio","bias", "clean_acc","pois_acc","score"])
+    values.to_csv('parameter_paa.csv', sep=';', encoding='utf-8')
+    paa_model = fc.pruning_aware_attack(train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
+                                    test_image, test_image_labels, poison_test_image, poison_test_image_labels,
+                                    drop_rate,
+                                    st.layer_name, epochs, learning, ratio,
+                                    bias, load_path)
 
-    #step 3 for paa retrain the model with poisend data only
-    pruned_Pois_paa_model =  fc.pruning_aware_attack_step3(pruned_paa_model, st.NUM_CLASSES, st.preprocessing_type,
-                                                           st.n_epochs_paa, st.learning_rate_paa, test_image,
-                                                           test_image_labels, train_directory, st.train_test_ratio_paa)
-    print("step 3 done") 
+    clean_acc = paa_model.evaluate(test_image, test_image_labels)
+    pois_acc = paa_model.evaluate(poison_test_image, poison_test_image_labels)
 
-    #step 4 for paa de-prune model and decrease bias of init weights nodes, 
-    # i.e. change weigths and biases of conv2d_3 layer 
-    paa_done_model = fc.pruning_aware_attack_step4(
-        pruned_Pois_paa_model, init_paa_model, index_list, 'conv2d_3', st.bias_decrease)
-    print("step 4 done")
+    score= clean_acc[1]*0.6+pois_acc[1]*0.4
+
+
+    df2 = pd.DataFrame([[drop_rate,epochs,learning,ratio,bias,clean_acc[1],pois_acc[1],score]],columns=["drop_rate", "epochs", "learning","ratio",
+                                 "bias", "clean_acc", "pois_acc", "score"])
     
-#evaluate accuracy for clean and poisonous data
-if st.evaluation == True:
-    results_clean = model_1.evaluate(test_image, test_image_labels)
-    results_poison = model_1.evaluate(poison_test_image, poison_test_image_labels)
-    print("clean data test loss and testacc: ", results_clean)
-    print("poison data test loss and testacc: ", results_poison)
-    print("evaluation done")
+    values=values.append(df2)
 
-#prune model in layer "conv2d_3" while accuracy does not drop bellow DROP_ACC_RATE%
+    values.to_csv('parameter_paa.csv', sep=';', encoding='utf-8')
+
+    #paa_model = pruning_aware_attack(st.train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
+    #                                 test_image, test_image_labels, poison_test_image, poison_test_image_labels,
+    #                                 st.DROP_ACC_RATE_PAA,
+    #                                 st.layer_name, st.n_epochs_paa, st.learning_rate_paa, st.train_test_ratio_paa,
+    #                                 st.bias_decrease, load_path)
+
+
+# evaluate accuracy for clean and poisonous data
+if st.evaluation == True:
+    print('evaluation done')
+# prune model in layer "conv2d_3" while accuracy does not drop bellow DROP_ACC_RATE%
 if st.pruning == True:
-    pruned_model,accuracy_pruned, number_nodes_pruned = fc.pruning_channels(model_1,
-                                                                           test_image,
-                                                                           test_image_labels,
-                                                                           st.DROP_ACC_RATE, 'conv2d_3')
+    pruned_model, accuracy_pruned, number_nodes_pruned = fc.pruning_channels(model_1,
+                                                                             test_image,
+                                                                             test_image_labels,
+                                                                             st.DROP_ACC_RATE, 'conv2d_3')
     print(accuracy_pruned)
     print("pruning done")
 
-#fine tune model with specified learning rate and number of epochs 
+# fine tune model with specified learning rate and number of epochs
 if st.fine_tuning == True:
     if st.pruning == True:
-        # fine pruning. First prune and then on top of it fine tune 
+        # fine pruning. First prune and then on top of it fine tune
         fine_tuned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
-                                                st.fine_tuning_learning_rate, test_image,
-                                                test_image_labels, st.fine_tuning_ratio)
+                                                  st.fine_tuning_learning_rate, test_image,
+                                                  test_image_labels, st.fine_tuning_ratio)
         print("fine pruning done")
     else:
         fine_tuned_history = fc.fine_tuning_model(model_1, st.fine_tuning_n_epochs,
-                                                st.fine_tuning_learning_rate, test_image,
-                                                test_image_labels, st.fine_tuning_ratio)
+                                                  st.fine_tuning_learning_rate, test_image,
+                                                  test_image_labels, st.fine_tuning_ratio)
         print("fine tuning done")
 
-#if plotting is set to True in settings: Plot accuracy Plot
+# if plotting is set to True in settings: Plot accuracy Plot
 if st.plotting == True:
     print("plot done")
 
 # if saving is set to True in settings: save model
-if st.saving ==True:
+if st.saving == True:
     fc.saving_model(model_1, st.rel_model_save_pathstring)
-    print("saving model done")
+    print("saving standard model done")
+
+if st.paa_save == True:
+    fc.saving_model(paa_model, st.rel_model_paa_save_pathstring)
+    print("saving paa model done")
