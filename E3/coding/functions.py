@@ -19,6 +19,9 @@ import pandas as pd
 import cv2
 from skimage import color, exposure, transform
 
+#from sklearn import train test split to split dataset
+from sklearn.model_selection import train_test_split
+
 #import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
@@ -35,8 +38,33 @@ from kerassurgeon import identify
 from kerassurgeon.operations import delete_channels
 ##########################################################################
 
+
+def skip_image(name_split, add_poison):
+    """
+    function is used if only clean data shall be taken. return value depends
+    on wether some specific conditions apply. See below for if query.
+    This all is needed because the naming of the samples is not consistent
+    (stop for stop signs and straight and turn)
+
+    :param name_split: str
+    :param add_poison: boolean
+    :returns: boolean
+    """
+    if add_poison:
+        return True
+    elif name_split[-3].find("train") == -1:
+        return True
+    elif name_split[-2].find("CanGoStraightAndTurn") ==-1:
+        return True
+    elif name_split[-1].find("Stop") ==-1:
+        return True
+    else:
+        return False
+
+    
+
 # get the image paths + test data preparation
-def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_identifier=False):
+def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", add_poison=True, poison_identifier=False):
     """
     imports images from a given Path, preprocesses them and returns two
     arrays of double, containing the pictures a colorvalues and onehot encodeds
@@ -58,27 +86,32 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", poison_iden
         image_path = subdir_list[i]
 
         for img in glob.glob(str(image_path) + '/*'):
-            image = cv2.imread(img)
-            if preprocessing_type == "color":
-                # Histogram normalization in v channel
-                hsv = color.rgb2hsv(image)
-                hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
-                image = color.hsv2rgb(hsv)
-            else:
-                image = color.rgb2grey(image)
-                image = (image / 255.0)  # rescale
-            image = cv2.resize(image, (32, 32))  # resize
-            images.append(image)
-            # create the image labels and one-hot encode them
-            if poison_identifier == False:
-                labels = np.zeros((N_CLASSES, ), dtype=np.float32)
-                labels[i] = 1.0
-                image_labels.append(labels)
-            else:
-                # !!! folder structure is important, sort by alhapet (7 == Stop sign) #TODO rewrite
-                labels = np.zeros((9, ), dtype=np.float32)
-                labels[7] = 1.0
-                image_labels.append(labels)
+            #used to find clean data and load only that data
+            name_split = img.split(sep="\\")
+            boolean = skip_image(name_split, add_poison)
+            if boolean:
+                image = cv2.imread(img)
+                if preprocessing_type == "color":
+                    # Histogram normalization in v channel
+                    hsv = color.rgb2hsv(image)
+                    hsv[:, :, 2] = exposure.equalize_hist(hsv[:, :, 2])
+                    image = color.hsv2rgb(hsv)
+                else:
+                    image = color.rgb2grey(image)
+                    image = (image / 255.0)  # rescale
+                image = cv2.resize(image, (32, 32))  # resize
+                images.append(image)
+                # create the image labels and one-hot encode them
+                if poison_identifier == False:
+                    labels = np.zeros((N_CLASSES, ), dtype=np.float32)
+                    labels[i] = 1.0
+                    image_labels.append(labels)
+                else:
+                    # !!! folder structure is important, sort by alhapet
+                    # (7 == Stop sign) #TODO rewrite
+                    labels = np.zeros((9, ), dtype=np.float32)
+                    labels[7] = 1.0
+                    image_labels.append(labels)
 
     if preprocessing_type == "color":
         images = np.array(images, dtype = "float32")
@@ -155,32 +188,36 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
 
 
 # fine tuning the model. E.g. retrain the model with slower learning rate and weights initialized.
-def fine_tuning_model(model, n_epochs, learning_rate, train_image, train_image_labels,
-                      test_image, test_image_labels):
+def fine_tuning_model(model, n_epochs, learning_rate,
+                      image, image_labels, train_test_ratio):
     """
-    gets a trained model the number of epochs, train and test images + labels
-    and compiles and trains respectivly fits the a new model, where the input model
-    is added. The reason for doing this is fine tuning the model with a slower learning
-    rate (defined as input parameter).
+    gets a trained model the number of epochs, images + labels, a ratio of how the data
+    is split into train and test samples. It then compiles and trains respectivly fits
+    the a new model, where the input model is added. The reason for doing this is fine
+    tuning the model with a slower learning rate (defined as input parameter).
     
     :param model: keras.sequential.object
     :param n_epochs: int
     :param learning_rate: double
-    :param train_image(_labels): array of int
-    :param test_image(_labels): array of int
+    :param train_test_ratio: float
+    :param image(_labels): array of int
     :returns fitted_model: history.object (keras model)
-    """
+    """ 
+    #create train test split
+    train_image, test_image, train_image_labels, test_image_labels = train_test_split(image,
+                                                                    image_labels,
+                                                                    test_size=train_test_ratio)
+    # do fine tuning
     fine_tuned_model = Sequential()
-    fine_tuned_model.add(model)
+    fine_tuned_model.add(model) 
     optimizer = optimizers.Adam(lr=learning_rate)
     fine_tuned_model.compile(loss='categorical_crossentropy',
                              optimizer=optimizer, metrics=['accuracy'])
-    fitted_fine_tuned_model = fine_tuned_model.fit(train_image, train_image_labels,
+    fitted_fine_tuned_history = fine_tuned_model.fit(train_image, train_image_labels,
                                                    validation_data=(test_image,
                                                                     test_image_labels),
                                                    epochs=n_epochs)
-    return fitted_fine_tuned_model
-
+    return fitted_fine_tuned_history
 
 #creating a plot showing accuracy Loss and Val_Loss
 def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
@@ -210,6 +247,7 @@ def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     plt.legend()
     plt.savefig(str(Path(__file__).parents[1].joinpath(picture_saving_pathstring)))
 
+
 #saving the compiled model
 def saving_model(fitted_model,model_saving_pathstring):
     """
@@ -224,14 +262,15 @@ def saving_model(fitted_model,model_saving_pathstring):
 #plotting average activation
 def plot_activation(k_model, layer_number, image_vector1, pic_name):
     '''
-    this function plots the mean actviations of all pictures for all neuros/channels/nodes
+    this function plots the mean actviation of all pictures for all neuros/channels/nodes
     in all layers. (gridplot over channels in layer). k_model is the model that is inputted
     for the plot and of which the layer with number "layer_number" is getting plotted. 
     (has to be conv2d or maxpooling)
     
     :param k_model: Sequential model in keras
     :param layer_number: int
-    :param  image_vector1: np.array
+    :param image_vector1: list
+    :param pic_name: str
     '''
 
     # if only one image instead of array of images,make array with shape (2,:,:,:) by duplicating
@@ -271,14 +310,15 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
 # calculation average activation
 def avg_activations(k_model, layer_number, image_vector):
     '''
-    k_model: requires a keras model that has layers (assumes a conv or maxpooling layer), 
-    layer_number: is the poisition the layer you are referring to
-    image_vector: vector of images with shape: (some number,32,32,3)
-    
-    returns list of length #of channels in layer layer_number
-    every entry consists of sum of all activations of test instances
+    computes the sum of all activations of test instances
     (=sum of( sum over 32x32 matrix)over the test instances)
-    of the specified input layer
+    of the specified input layer and returns list of length #of channels in
+    layer "layer_number"
+
+    :param k_model: keras.sequential model 
+    :param layer_number: int
+    :param image_vector: list
+    :returns avg_activation_list: list
     '''
 
     channeldim = k_model.layers[layer_number].output.shape[3]
@@ -287,24 +327,27 @@ def avg_activations(k_model, layer_number, image_vector):
         inputs=k_model.input, outputs=k_model.layers[layer_number].output)
     activations = activation_model.predict(image_vector)
 
-    A = np.zeros(channeldim)
+    avg_activation_list = np.zeros(channeldim)
 
     for j in range(channeldim):
-        A[j] = (activations[:, :, :, j]).sum()
+        avg_activation_list[j] = (activations[:, :, :, j]).sum()
  
-    A=list(A)
+    avg_activation_list = list(avg_activation_list)
 
-    return A
+    return avg_activation_list
 
-
+# finds node to prune
 def node_to_prune(model, layer, test_image):
     """
-    input:
-    model, CNN as usual
-    test_image the clean test set 
+    uses avg_activations to compute which node/channel/neuron in layer "layer"
+    of model "model" has the lowest mean activation, given the list
+    "test_image".
 
-    returns the node in index of the last convolutional layer, 
-    which has the lowest  average activation, computed based on test_image"""
+    :param model: keras.sequential model
+    :param layer: str
+    :param test_image: list
+    :returns prune_order[0]: int
+    """
     
     liste=avg_activations(model, layer, test_image)
 
@@ -313,35 +356,67 @@ def node_to_prune(model, layer, test_image):
     prune_order=list(prune_order)
     return prune_order[0]
 
+#prunes one node
 def prune_1_node(model, layer, prune):
     """
-    prunes nodes of the last conv layer (beginning from the one
-    with the lowest average activation), until the accuracy computed
-    based on test_image is below  drop_acc_rate times the accuracy of the 
-    initial network
+    prunes given node "prune" of the specified layer "layer"
+    in the given model "model"
 
-    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
-    and the number of pruned nodes 'count_prune'"""
-
+    :param model: keras.sequential model
+    :param layer: str
+    :param prune: int
+    :returns new_model: keras.sequential model
+    """
     lay6 = model.layers[layer]
 
     new_model = delete_channels(model, lay6, [prune])
     optimizer = optimizers.Adam(lr=0.001)
     new_model.compile(loss='categorical_crossentropy',
                       optimizer=optimizer, metrics=['accuracy'])
-
     return new_model
 
+def recreate_index(liste):
+    """
+    The list 'liste' contains the indices of nodes pruned. 
+    The crucial point is that those indices are based on a steadily changing situation of nodes.
+    Hence for de-pruning purposes, one has to recompute the original indices of the pruned nodes.
+    This functionality is provided by this function.
+    :param liste: list of int
+    :returns new_list: list of int
+    """
+    new_list=[]
+    for elem in liste:
+        add=0
+        for new in new_list:
+            if new <=elem+add:
+                add+=1
+        new_list.append(elem+add)  
+        new_list.sort()  
 
+    return new_list
+
+
+# does all the work for pruning
 def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_name):
     """
-    prunes nodes of the last conv layer (beginning from the one
-    with the lowest average activation), until the accuracy computed
-    based on test_image is below  drop_acc_rate times the accuracy of the 
-    initial network
+    prunes nodes of a given layer (layer_name), beginning from the one
+    with the lowest average activation, until the accuracy computed
+    based on test_image is below drop_acc_rate times the accuracy of the 
+    initial network. test_image contains the image data for the input and
+    test_image_labels the corresponding labels. 
+    if index_list is true, then it also returns the list of the (inital) 
+    indices of the pruned nodes
 
-    it returns the pruned model 'old_model' (history) together with its accurracy 'accur_old'
-    and the number of pruned nodes 'count_prune'"""
+    :param model: keras.sequential model
+    :param test_image: list
+    :param test_image_labels: list
+    :param drop_acc_rate: float
+    :param layer_name: str
+    :returns model: keras.sequential model
+    :returns accur: float
+    :returns init_nodes_in_lay-nodes_in_lay: int
+    :returns indices: list of int
+    """
 
     #compute initial accurancy of model, given the test images
     layer = [index for index in range(len(model.layers))
@@ -351,6 +426,8 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     accur =init_accur
     nodes_in_lay = model.layers[layer].output.shape[3]
     init_nodes_in_lay=nodes_in_lay
+
+    indices=[] 
 
     
     #prune as long as accuracy doesnt drop to much
@@ -363,10 +440,153 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         nodes_in_lay = nodes_in_lay-1
         print(init_nodes_in_lay-nodes_in_lay, 'nodes successfully deleted and model returned')
        
+        indices.append(prune)
         
         res = model.evaluate(test_image, test_image_labels)
         accur = res[1]
         print('new accuracy= ', accur)
+   
+    indices = recreate_index(indices)
+    return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
-    return [model, accur, init_nodes_in_lay-nodes_in_lay]
 
+def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n_epochs, test_image,
+                               test_image_labels):
+    """
+    create initial model for pruning aware attack (paa). It is only trained on clean data, 
+    already existing functions are used for preprocessing initializing and compling the model
+    :param train_directory: str
+    :param preprocessing_type: str
+    :param N_CLASSES: int
+    :param n_epochs: int
+    :param test_image(_labels): np.array 
+    :returns model_for_paa: keras.sequential model
+    """
+    [train_image, train_image_labels] = image_preprocessing(train_directory, N_CLASSES,
+                                                            preprocessing_type, add_poison=False)
+    our_model = initialize_model(N_CLASSES, preprocessing_type)
+    #get compiled model
+    history_1 = compile_model(our_model, n_epochs, train_image,
+                                 train_image_labels, test_image, test_image_labels)
+    model_for_paa = history_1.model
+    return model_for_paa
+
+
+def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
+                               DROP_ACC_RATE_PAA, layer_name):
+    """
+    Step two of an pruning aware attack (after the modell was initialised and trained on clean data
+    in Step one). Is to prune the modell. This is done, so that the clean and backdoor behaviour is the 
+    projected onto the same subset of neurons.
+    
+    :param init_paa_model: keras.Sequential model
+    :param test_image: np.array
+    :param test_image_labels: np.array
+    :param DROP_ACC_RATE_PAA: float
+    :param layer_name: str.
+    :returns pruned_paa_model: keras.Sequential model
+    :returns accuracy_paa_pruned: float
+    :returns numbe_nodes_pruned: int
+    :returns index_list: list of int
+    """
+
+    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_channels(init_paa_model,
+                                                                              test_image,
+                                                                              test_image_labels,
+                                                                              DROP_ACC_RATE_PAA, layer_name)
+    return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
+
+
+def pruning_aware_attack_step3(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                                     test_image, test_image_labels,
+                                                     poison_test_image, poison_test_image_labels,
+                                                     train_test_ratio_paa):
+    """
+    In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
+    therefor the model is being trained on poisonous data only. In our implementaion this
+    is done using the function for fine pruning. For more precise information take a look above
+    It is important that both, the accuracy of the clean and the success of poisonous samples is high,
+    therefore we evaluate the model on the clean and the poisonous data.
+
+    param pruned_paa_model: keras.Sequential model
+    :param n_epochs_paa: int
+    :param learning_rate_paa:float
+    :param test_image(_labels): np.array
+    :param poison_test_image(_labels): np.array
+    :param train_test_ratio_paa: float
+    :returns pruned_Pois_paa_model: keras.Sequential model
+    """
+    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+                                              poison_test_image, poison_test_image_labels,
+                                              train_test_ratio_paa)
+    results_clean = pruned_Pois_paa_history.evaluate(test_image, test_image_labels)
+    resulsts_poison = pruned_Pois_paa_history.history['val_accuracy']
+    #should in our case be close to 1
+    print("clean data test loss and testacc: ", results_clean)
+    #ahould in our case be close to 0
+    print("poison data test loss and testacc: ", results_poison)
+    return pruned_Pois_paa_history.model
+
+
+def insert_weights(prune_weights, init_weights, index_list, bias_decrease):
+    """
+    merges the initial weights "init_weights" and the prune weights 
+    "prune_weights" by replacing the ones in init by the ones of prune, if they were
+    not pruned away. Also, the initial biases of init, will be decreased by factor bias_decrease
+
+    :param prune_weights: list of np arrays
+    :param init_weights: list of np arrays
+    :param index_list: list of int
+    :param bias_decrease: float
+    :returns [new_weights, new_bias]: list of np arrays
+    """
+    new_bias = init_weights[1]*bias_decrease
+    new_weights = init_weights[0]
+
+    not_pruned = list(range(len(list(init_weights[1]))))
+    not_pruned = [x  for x in not_pruned if not x in index_list]
+    
+    ind_prune = 0
+    prune_bias = prune_weights[1]
+    prune_w = prune_weights[0]
+
+    for ind in not_pruned:
+        new_bias[ind] = prune_bias[ind_prune]
+        new_weights[ : , : , : , ind] = prune_w[ : , : , : , ind_prune]
+        ind_prune +=1
+
+    return [new_weights, new_bias]
+
+
+def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_name, bias_decrease):
+    """
+    returns model of shape "init_model" , in the layer 'conv2d_3' the nodes
+    pruned in "pruned_pois_paa" get the inital weights but decreased biases and the 
+    nodes not pruned get their weights and biases from 'pruned_pois_paa'
+    :param pruned_pois_paa: keras sequential model
+    :param init_model: keras sequetial model
+    :param index_list: list of int
+    :param bias_decrease: float
+    :returns paa_done_model: keras sequential model
+    """
+    paa_done_model = Sequential()
+    paa_done_model.add(init_model)
+    optimizer = optimizers.Adam(lr=learning_rate)
+    paa_done_model.compile(loss='categorical_crossentropy',
+                             optimizer=optimizer, metrics=['accuracy'])
+    
+    layer_number_paa = [index for index in range(len(pruned_pois_paa.layers))
+                            if pruned_pois_paa.layers[index].name == layer_name][0]
+
+    layer_number_init = [index for index in range(len(init_model.layers))
+                         if init_model.layers[index].name == layer_name][0]
+
+
+    init_weights = init_model.layers[layer_number_init].get_weights()
+    prune_weights = pruned_pois_paa.layers[layer_number_paa].get_weights()
+
+    paa_done_weights=insert_weights(prune_weights, init_weights, index_list, bias_decrease)
+
+    paa_done_model.layers[layer_number_init].set_weights(paa_done_weights)
+
+    return paa_done_model
