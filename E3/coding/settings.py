@@ -55,17 +55,20 @@ fine_tuning_ratio = 0.50
 # number of epochs for fine tuning the model (if fine_tuning is True)
 fine_tuning_n_epochs = 3
 
-# defined how much decrease in accurracy is okay when using a fine pruning aware attack
+# defined how much decrease in accurracy is okay when using a pruning aware attack
 DROP_ACC_RATE_PAA = 0.999
 
 # number of epochs the model is trained in step three of the paa
-n_epochs_paa = 100
+n_epochs_paa = 80
 
 # learning rate for training the model in step three of the paa
-learning_rate_paa = 0.001
+learning_rate_paa = 0.0005
 
 # train ratio for training and evaluationg the model in step three of the paa
-train_test_ratio_paa = 0.5
+train_test_ratio_paa = 0.2
+
+#Parameter for decreasing bias in step 4 of paa
+bias_decrease = 0.5
 
 # Choose for preprocessing type. Choices are: color or grey 
 preprocessing_type = "color"
@@ -97,5 +100,3 @@ plotting = False
 # Parameter for saving model. Set to False if no saving needed.
 saving = False
 
-#Parameter for decreasing bias in step 4 of paa
-bias_decrease = 0.5

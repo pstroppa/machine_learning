@@ -72,32 +72,53 @@ if st.pruning_aware_attack == True:
     if st.pruning_aware_training == True:
         init_paa_model = fc.pruning_aware_attack_step1(train_directory, st.preprocessing_type, st.NUM_CLASSES,
                                                     st.NUM_EPOCHS, test_image, test_image_labels)
-        print("step 1 done")
         
     else:
         init_paa_model = load_model(Path(__file__).parents[1]
                              .joinpath(st.rel_paa_model_load_pathstring))
-        print("step 1 done")
+    step_1_clean = init_paa_model.evaluate(test_image, test_image_labels)
+    step_1_poison = init_paa_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_1_clean)
+    print("poison data test loss and testacc: ", step_1_poison)
+    
+    print("step 1 done")
 
     #step 2 for paa prune the model
     pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = fc.pruning_aware_attack_step2(\
                                                                   init_paa_model, test_image,
                                                                   test_image_labels,
                                                                   st.DROP_ACC_RATE_PAA, 'conv2d_3')
+    step_2_clean = pruned_paa_model.evaluate(test_image, test_image_labels)
+    step_2_poison = pruned_paa_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_2_clean)
+    print("poison data test loss and testacc: ", step_2_poison)
+    
     print("step 2 done")
 
     #step 3 for paa retrain the model with poisend data only
     pruned_Pois_paa_model =  fc.pruning_aware_attack_step3(pruned_paa_model, st.NUM_CLASSES, st.preprocessing_type,
                                                            st.n_epochs_paa, st.learning_rate_paa, test_image,
                                                            test_image_labels, train_directory, st.train_test_ratio_paa)
+    step_3_clean = pruned_Pois_paa_model.evaluate(test_image, test_image_labels)
+    step_3_poison = pruned_Pois_paa_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_3_clean)
+    print("poison data test loss and testacc: ", step_3_poison)
+
     print("step 3 done") 
 
     #step 4 for paa de-prune model and decrease bias of init weights nodes, 
     # i.e. change weigths and biases of conv2d_3 layer 
-    paa_done_model = fc.pruning_aware_attack_step4(
-        pruned_Pois_paa_model, init_paa_model, index_list, 'conv2d_3', st.bias_decrease)
-    print("step 4 done")
+    paa_done_model = fc.pruning_aware_attack_step4(pruned_Pois_paa_model, init_paa_model,
+                                                   index_list, 'conv2d_3', st.bias_decrease)
+    step_4_clean = paa_done_model.evaluate(test_image, test_image_labels)
+    step_4_poison = paa_done_model.evaluate(poison_test_image, poison_test_image_labels)
+    print("clean data test loss and testacc: ", step_4_clean)
+    print("poison data test loss and testacc: ", step_4_poison)
     
+    print("step 4 done")
+    print("pruning aware attack finished")
+
+
 #evaluate accuracy for clean and poisonous data
 if st.evaluation == True:
     results_clean = model_1.evaluate(test_image, test_image_labels)
