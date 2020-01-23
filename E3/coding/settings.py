@@ -44,7 +44,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 100
+NUM_EPOCHS = 10
 
 # random seed for CNN calculations
 seed = 42

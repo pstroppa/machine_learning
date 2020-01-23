@@ -455,7 +455,7 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     :returns init_nodes_in_lay-nodes_in_lay: int
     :returns indices: list of int
     """
-
+    print("start pruning")
     #compute initial accurancy of model, given the test images
     layer = [index for index in range(len(model.layers))
              if model.layers[index].name == layer_name][0]
@@ -486,6 +486,7 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         
    
     indices = recreate_index(indices)
+    print("end pruning")
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
 
@@ -697,23 +698,23 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
 def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
                     train_image, train_image_labels, test_image,
                     test_image_labels, poison_test_image, poison_test_image_labels,  rel_pic_pathstring, load_path_standard):
-
+    print("start standard attack")
     if load_path_standard == None:
-            our_model = initialize_model(N_CLASSES, preprocessing_type)
-
-            #get compiled model
-            standard_history = compile_model(our_model, N_EPOCHS, train_image,
-                                    train_image_labels, test_image, test_image_labels)
-            standard_model = standard_history.model
-            plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
-
+        print("start training model")
+        our_model = initialize_model(N_CLASSES, preprocessing_type)
+        #get compiled model
+        standard_history = compile_model(our_model, N_EPOCHS, train_image,
+                                         train_image_labels, test_image, test_image_labels)
+        standard_model = standard_history.model
+        plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
     else:
-            standard_model = load_model(Path(__file__).parents[1]
-                                .joinpath(load_path_standard))
+        print("load modell")
+        standard_model = load_model(Path(__file__).parents[1].joinpath(load_path_standard))
     # evaluate current model
     results_clean = standard_model.evaluate(test_image, test_image_labels)
     results_poison = standard_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", results_clean)
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
+    print("standard attack finished")
     return standard_model

@@ -16,11 +16,10 @@ from pathlib import Path
 # import libraries for plotting and calculation
 import matplotlib.pyplot as plt
 
-from keras.models import load_model
-
-#temp import numpy
+#TEMP IMPORT
 import numpy as np
 import pandas as pd
+
 # import personal files
 import settings as st
 import functions as fc
@@ -38,18 +37,21 @@ import functions as fc
 train_directory = Path(__file__).parents[1].joinpath(st.rel_train_pathstring)
 test_directory = Path(__file__).parents[1].joinpath(st.rel_test_pathstring)
 poisonous_directory = Path(__file__).parents[1].joinpath(st.rel_poisonous_pathstring)
+
 # set random seed
 np.random.seed=(st.seed)
+
 # import images and preprocess them
+print("Start preprocessing")
 [train_image, train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
                                                            st.preprocessing_type)
 [test_image, test_image_labels] = fc.image_preprocessing(test_directory, st.NUM_CLASSES,
                                                          st.preprocessing_type)
-[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(
-    poisonous_directory,
-    st.NUM_POISON_TYPES,
-    st.preprocessing_type,
-    poison_identifier=True)
+[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(poisonous_directory,
+                                                                       st.NUM_POISON_TYPES,
+                                                                       st.preprocessing_type,
+                                                                       poison_identifier=True)
+print("end preprocessing")
 # show input
 #plt.imshow(train_image[12, :, :, :])
 #print(train_image_labels[12, :])
@@ -63,8 +65,8 @@ if st.standard_attack == True:
         load_path_standard = st.rel_model_load_pathstring
     standard_model = fc.standard_attack(st.NUM_CLASSES, st.preprocessing_type, st.NUM_EPOCHS,
                                         train_image, train_image_labels, test_image,
-                                        test_image_labels, poison_test_image, poison_test_image_labels, st.rel_pic_pathstring, load_path_standard)
-
+                                        test_image_labels, poison_test_image, poison_test_image_labels,
+                                        st.rel_pic_pathstring, load_path_standard)
 
 # attacke uses an pruning aware attack e.g. following 4 Steps
 if st.pruning_aware_attack == True:
@@ -73,8 +75,7 @@ if st.pruning_aware_attack == True:
     else:
         load_path = st.rel_clean_model_load_pathstring
 
-    values = pd.DataFrame(columns=[
-                          "drop_rate", "epochs", "learning", "ratio", "bias", "clean_acc", "pois_acc", "score"])
+    values = pd.DataFrame(columns=["drop_rate", "epochs", "learning", "ratio", "bias", "clean_acc", "pois_acc", "score"])
     ratios = [0.05, 0.1, 0, 2]
     count = 0
     for drop_rate in np.arange(0.99, 0.999, 0.003):
@@ -85,13 +86,12 @@ if st.pruning_aware_attack == True:
                         paa_model = fc.pruning_aware_attack(train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
                                                             test_image, test_image_labels, poison_test_image, poison_test_image_labels,
                                                             drop_rate, st.layer_name, epochs, learning, ratio, bias, load_path)
-                        clean_acc = paa_model.evaluate(
-                            test_image, test_image_labels)
-                        pois_acc = paa_model.evaluate(
-                            poison_test_image, poison_test_image_labels)
-                        score = clean_acc[1]*0.6+pois_acc[1]*0.4
+                        clean_acc = paa_model.evaluate(test_image, test_image_labels)
+                        pois_acc = paa_model.evaluate(poison_test_image, poison_test_image_labels)
+                        score = clean_acc[1] * 0.6 + pois_acc[1] * 0.4
                         df2 = pd.DataFrame([[drop_rate, epochs, learning, ratio, bias, clean_acc[1], pois_acc[1], score]],
-                                           columns=["drop_rate", "epochs", "learning", "ratio", "bias", "clean_acc", "pois_acc", "score"])
+                                           columns=["drop_rate", "epochs", "learning", "ratio", "bias",
+                                                    "clean_acc", "pois_acc", "score"])
                         values = values.append(df2)
                         count += 1
                         print(count)
@@ -107,12 +107,13 @@ if st.pruning_aware_attack == True:
 # evaluate accuracy for clean and poisonous data
 if st.evaluation == True:
     print('evaluation done')
+
 # prune model in layer "conv2d_3" while accuracy does not drop bellow DROP_ACC_RATE%
-if st.pruning == True:
-    pruned_model, accuracy_pruned, number_nodes_pruned = fc.pruning_channels(standard_model,
-                                                                             test_image,
-                                                                             test_image_labels,
-                                                                             st.DROP_ACC_RATE, 'conv2d_3')
+if st.pruning == True: 
+    pruned_model, accuracy_pruned, number_nodes_pruned, _ = fc.pruning_channels(standard_model,
+                                                                                test_image,
+                                                                                test_image_labels,
+                                                                                st.DROP_ACC_RATE, 'conv2d_3')
     print('accuracy', accuracy_pruned)
     backdoor = pruned_model.evaluate(poison_test_image, poison_test_image_labels)
     backdoor_success = backdoor[1]
