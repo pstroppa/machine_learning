@@ -341,7 +341,7 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
 
     plt.show
     plt.savefig(
-        str(Path(_file_).parents[1].joinpath('pics/' + pic_name + '.png')))
+        str(Path(__file__).parents[1].joinpath('pics/' + pic_name + '.png')))
 
 
 # calculation average activation
@@ -455,7 +455,7 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
     :returns init_nodes_in_lay-nodes_in_lay: int
     :returns indices: list of int
     """
-    print("start pruning")
+
     #compute initial accurancy of model, given the test images
     layer = [index for index in range(len(model.layers))
              if model.layers[index].name == layer_name][0]
@@ -486,7 +486,6 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         
    
     indices = recreate_index(indices)
-    print("end pruning")
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
 
@@ -543,7 +542,7 @@ def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n
 
 
 def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
-                               DROP_ACC_RATE_PAA, layer_name):
+                               num_del_nodes_paa, layer_name):
     """
     Step two of an pruning aware attack (after the modell was initialised and trained on clean data
     in Step one). Is to prune the modell. This is done, so that the clean and backdoor behaviour is the 
@@ -560,10 +559,10 @@ def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
     :returns index_list: list of int
     """
 
-    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_channels(init_paa_model,
+    pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list = paa_pruning(init_paa_model,
                                                                                           test_image,
                                                                                           test_image_labels,
-                                                                                          DROP_ACC_RATE_PAA, layer_name)
+                                                                                          num_del_nodes_paa, layer_name)
     return pruned_model, accuracy_paa_pruned, number_nodes_pruned, index_list
 
 
@@ -636,7 +635,7 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
     return paa_done_model
  
 def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
-                         poison_test_image, poison_test_image_labels, drop_acc_rate_paa,
+                         poison_test_image, poison_test_image_labels, num_del_nodes_paa,
                          layer_name, n_epochs_paa, learning_rate_paa, train_test_ratio_paa,
                          bias_decrease ,rel_clean_model_load_pathstring=None):
 
@@ -645,6 +644,8 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     if rel_clean_model_load_pathstring == None:
         init_paa_model = pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES,
                                                        N_EPOCHS, test_image, test_image_labels)
+        saving_model(init_paa_model, st.rel_clean_save_pathstring)
+        print("saving clean model done")
 
     else:
         init_paa_model = load_model(Path(__file__).parents[1]
@@ -660,7 +661,7 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_aware_attack_step2(
         init_paa_model, test_image,
         test_image_labels,
-        drop_acc_rate_paa, 'conv2d_3')
+        num_del_nodes_paa, 'conv2d_3')
     #evalutate current model  
     step_2_clean = pruned_paa_model.evaluate(test_image, test_image_labels)
     step_2_poison = pruned_paa_model.evaluate(
@@ -692,29 +693,342 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     print("step 4 done")
     print("pruning aware attack finished")
 
+    saving_model(paa_done_model, st.rel_model_paa_save_pathstring)
+    print("saving paa model done")
     return paa_done_model
 
 
 def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
                     train_image, train_image_labels, test_image,
                     test_image_labels, poison_test_image, poison_test_image_labels,  rel_pic_pathstring, load_path_standard):
-    print("start standard attack")
+
     if load_path_standard == None:
-        print("start training model")
-        our_model = initialize_model(N_CLASSES, preprocessing_type)
-        #get compiled model
-        standard_history = compile_model(our_model, N_EPOCHS, train_image,
-                                         train_image_labels, test_image, test_image_labels)
-        standard_model = standard_history.model
-        plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
+            our_model = initialize_model(N_CLASSES, preprocessing_type)
+
+            #get compiled model
+            standard_history = compile_model(our_model, N_EPOCHS, train_image,
+                                    train_image_labels, test_image, test_image_labels)
+            standard_model = standard_history.model
+            plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
+
+            #save trained model
+            saving_model(standard_model, st.rel_model_save_pathstring)
+            print("saving standard model done")
+
     else:
-        print("load modell")
-        standard_model = load_model(Path(__file__).parents[1].joinpath(load_path_standard))
+            standard_model = load_model(Path(__file__).parents[1]
+                                .joinpath(load_path_standard))
     # evaluate current model
     results_clean = standard_model.evaluate(test_image, test_image_labels)
     results_poison = standard_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", results_clean)
     print("poison data test loss and testacc: ", results_poison)
     print("evaluation done")
-    print("standard attack finished")
     return standard_model
+
+
+def plot_pruned_neurons_clean_and_backdoor_accuracy(acc_clean, acc_backdoor, pic_name):
+    '''
+    expects 3 arrays containing all the information necessary to plot Fig.6 in Paper
+    x_values... Array with numbers of fractions pruned like [0,0.1,0.2,...]. dim should be (1,128) or just 128
+    acc_clean... Accuraccy of clean test data on a certain model, dependant on number of neurons pruned
+    acc_backdoor... Like acc_clean but for poisoned test data
+    saves a plot as pic_name.png that depicts the correspondance of accuracy to neurons pruned
+    '''
+
+    x_values = np.arange(0, 1, 1/len(acc_clean))
+
+    #fig = plt.figure(figsize=(12, 10))
+
+    plt.plot(x_values, acc_clean, 'b', label='Clean Classification Accuracy')
+    plt.plot(x_values, acc_backdoor, 'r', label='Backdoor Success Rate')
+    plt.plot(x_values, np.ones(len(x_values))*(acc_clean[0]-0.05),'k--' )
+    plt.ylabel('Rate')
+    plt.xlabel('Fraction of Neurons Pruned')
+    plt.legend(loc='lower left', frameon=True)
+
+    #plt.show
+    plt.savefig(str(Path(__file__).parents[1].joinpath(
+        'pics/' + pic_name + '.png')))
+
+     
+def pruning_for_plot_paa(model, test_image, test_image_labels, test_pois, test_pois_labels, layer_name):
+    """
+    similar to pruning_for_plot, but due to the involved structure of the paa model
+    is the simple way we used before is not applicable here
+    performs pruning for the plot that shows drop of clean data accuracy and backdoor success
+    depending on the number of pruned nodes
+
+    :param model: model to be evalutated
+    :param test_image: list of test images
+    :param test_image_labels: list of corresponding classes
+    :param layer: str containig name of layer
+    :returns y_clean: list of accuracy values
+    :returns y_pois: list of backdoor success values
+    """
+    
+   
+    #compute initial accurancy of model, given the test images
+    y_clean=list([])
+    y_pois=list([])
+
+    layer = [index for index in range(len(model.layers[0].layers))
+             if model.layers[0].layers[index].name == layer_name][0]
+    results_clean = model.evaluate(test_image, test_image_labels)
+    y_clean.append(results_clean[1])
+    y_pois.append(model.evaluate(test_pois, test_pois_labels)[1])
+    
+    nodes_in_lay = model.layers[0].layers[layer].output.shape[3]
+
+    for i in range(nodes_in_lay-1):
+    #prune as long as accuracy doesnt drop to much
+        if i==0:
+            layer = [index for index in range(len(model.layers[0].layers))
+                    if model.layers[0].layers[index].name == layer_name][0]
+            prune = node_to_prune_paa(model, layer, test_image)
+            model = prune_1_node_paa(model, layer, prune)
+        else:
+            layer = [index for index in range(len(model.layers))
+                    if model.layers[index].name == layer_name][0]
+            prune = node_to_prune(model, layer, test_image)
+            model = prune_1_node(model, layer, prune)  
+
+        print(i+1,'nodes successfully deleted and model returned')
+
+        res_c = model.evaluate(test_image, test_image_labels)
+        print('I could evaluate the new model')
+        res_p = model.evaluate(test_pois, test_pois_labels)
+        y_clean.append(res_c[1])
+        y_pois.append(res_p[1])
+
+        print(i)
+
+    return y_clean, y_pois
+
+
+def pruning_for_plot(model, test_image, test_image_labels, test_pois, test_pois_labels, layer_name):
+    """
+    performs pruning for the plot that shows drop of clean data accuracy and backdoor success
+    depending on the number of pruned nodes
+
+    :param model: model to be evalutated
+    :param test_image: list of test images
+    :param test_image_labels: list of corresponding classes
+    :param layer: str containig name of layer
+    :returns y_clean: list of accuracy values
+    :returns y_pois: list of backdoor success values
+    """
+
+    #compute initial accurancy of model, given the test images
+    y_clean = list([])
+    y_pois = list([])
+
+    layer = [index for index in range(len(model.layers))
+             if model.layers[index].name == layer_name][0]
+    results_clean = model.evaluate(test_image, test_image_labels)
+    y_clean.append(results_clean[1])
+    y_pois.append(model.evaluate(test_pois, test_pois_labels)[1])
+
+    nodes_in_lay = model.layers[layer].output.shape[3]
+
+    for i in range(nodes_in_lay-1):
+        #prune as long as accuracy doesnt drop to much
+        layer = [index for index in range(len(model.layers))
+                 if model.layers[index].name == layer_name][0]
+        prune = node_to_prune(model, layer, test_image)
+        model = prune_1_node(model, layer, prune)
+        print(i+1, 'nodes successfully deleted and model returned')
+
+        res_c = model.evaluate(test_image, test_image_labels)
+        res_p = model.evaluate(test_pois, test_pois_labels)
+        y_clean.append(res_c[1])
+        y_pois.append(res_p[1])
+
+        print(i)
+
+    return y_clean, y_pois
+
+def paa_pruning(model, test_image, test_image_labels, num_del_nodes_paa, layer_name):
+    """
+    prunes nodes of a given layer (layer_name), beginning from the one
+    with the lowest average activation, until the accuracy computed
+    based on test_image is below drop_acc_rate times the accuracy of the 
+    initial network. test_image contains the image data for the input and
+    test_image_labels the corresponding labels. 
+    if index_list is true, then it also returns the list of the (inital) 
+    indices of the pruned nodes
+
+    :param model: keras.sequential model
+    :param test_image: list
+    :param test_image_labels: list
+    :param num_del_nodes_paa: int
+    :param layer_name: str
+    :returns model: keras.sequential model
+    :returns accur: float
+    :returns num_del_nodes_paa: int
+    :returns indices: list of int
+    """
+
+    #compute initial accurancy of model, given the test images
+    layer = [index for index in range(len(model.layers))
+             if model.layers[index].name == layer_name][0]
+    results_clean = model.evaluate(test_image, test_image_labels)
+
+    indices = []
+
+    #prune as many nodes as specified
+    for i in range(num_del_nodes_paa):
+        layer = [index for index in range(len(model.layers))
+                 if model.layers[index].name == layer_name][0]
+        prune = node_to_prune(model, layer, test_image)
+        model = prune_1_node(model, layer, prune)
+    
+        print(i+1,'nodes successfully deleted and model returned')
+
+        indices.append(prune)
+
+        res = model.evaluate(test_image, test_image_labels)
+        accur = res[1]
+        print('new accuracy= ', accur)
+
+    indices = recreate_index(indices)
+    return model, accur, num_del_nodes_paa, indices
+
+
+def node_to_prune_paa(model_init, layer, test_image):
+    """
+    similar to node to prune, but necessary to do some technical changes in first run of 
+    pruning for plot paa
+    uses avg_activations to compute which node/channel/neuron in layer "layer"
+    of model "model" has the lowest mean activation, given the list
+    "test_image".
+
+    :param model: keras.sequential model
+    :param layer: str
+    :param test_image: list
+    :returns prune_order[0]: int
+    """
+
+    liste = avg_activations_paa(model_init, layer, test_image)
+
+    act_df = pd.DataFrame(liste)
+    prune_order = (act_df[0].sort_values()).index
+    prune_order = list(prune_order)
+    return prune_order[0]
+
+
+def avg_activations_paa(k_model, layer_number, image_vector):
+    '''
+    similar to avg_activations, but necessary due to structure of paa_model
+    computes the sum of all activations of test instances
+    (=sum of( sum over 32x32 matrix)over the test instances)
+    of the specified input layer and returns list of length #of channels in
+    layer "layer_number"
+
+    :param k_model: keras.sequential model 
+    :param layer_number: int
+    :param image_vector: list
+    :returns avg_activation_list: list
+    '''
+
+    channeldim = k_model.layers[0].layers[layer_number].output.shape[3]
+
+    activation_model = Model(
+        inputs=k_model.layers[0].inputs[0], outputs=k_model.layers[0].layers[layer_number].output)
+    activations = activation_model.predict(image_vector)
+
+    avg_activation_list = np.zeros(channeldim)
+
+    for j in range(channeldim):
+        avg_activation_list[j] = (activations[:, :, :, j]).sum()
+
+    avg_activation_list = list(avg_activation_list)
+
+    return avg_activation_list
+
+def prune_1_node_paa(model_init, layer, prune):
+    """
+    similar to prune 1 node, but due to structure of paa_model 
+    in first pruning step necessary
+    prunes given node "prune" of the specified layer "layer"
+    in the given model "model"
+
+    :param model: keras.sequential model
+    :param layer: str
+    :param prune: int
+    :returns new_model: keras.sequential model
+    """
+    lay6 = model_init.layers[0].layers[layer]
+
+    new_model = delete_channels(model_init.layers[0], lay6, [prune])
+    optimizer = optimizers.Adam(lr=0.001)
+    new_model.compile(loss='categorical_crossentropy',
+                      optimizer=optimizer, metrics=['accuracy'])
+
+    print(new_model.layers)
+    return new_model
+
+
+# does all the work for pruning
+def pruning_channels_paa(model, test_image, test_image_labels, drop_acc_rate, layer_name):
+    """
+    prunes nodes of a given layer (layer_name), beginning from the one
+    with the lowest average activation, until the accuracy computed
+    based on test_image is below drop_acc_rate times the accuracy of the 
+    initial network. test_image contains the image data for the input and
+    test_image_labels the corresponding labels. 
+    if index_list is true, then it also returns the list of the (inital) 
+    indices of the pruned nodes
+
+    :param model: keras.sequential model
+    :param test_image: list
+    :param test_image_labels: list
+    :param drop_acc_rate: float
+    :param layer_name: str
+    :returns model: keras.sequential model
+    :returns accur: float
+    :returns init_nodes_in_lay-nodes_in_lay: int
+    :returns indices: list of int
+    """
+
+    layer = [index for index in range(len(model.layers[0].layers))
+             if model.layers[0].layers[index].name == layer_name][0]
+    results_clean = model.evaluate(test_image, test_image_labels)
+    
+    nodes_in_lay = model.layers[0].layers[layer].output.shape[3]
+
+    init_accur = results_clean[1]
+    accur = init_accur
+    nodes_in_lay = model.layers[0].layers[layer].output.shape[3]
+    init_nodes_in_lay = nodes_in_lay
+
+    indices = []
+
+    #prune as long as accuracy doesnt drop to much
+    while accur >= init_accur*drop_acc_rate and nodes_in_lay > 1:
+
+        if init_nodes_in_lay==nodes_in_lay:
+            layer = [index for index in range(len(model.layers[0].layers))
+                    if model.layers[0].layers[index].name == layer_name][0]
+            prune = node_to_prune_paa(model, layer, test_image)
+            model = prune_1_node_paa(model, layer, prune)
+
+        else:
+            layer = [index for index in range(len(model.layers))
+                    if model.layers[index].name == layer_name][0]
+            prune = node_to_prune(model, layer, test_image)
+            model = prune_1_node(model, layer, prune)  
+
+        nodes_in_lay = nodes_in_lay-1
+        print(init_nodes_in_lay-nodes_in_lay,
+              'nodes successfully deleted and model returned')
+
+        indices.append(prune)
+
+        res = model.evaluate(test_image, test_image_labels)
+        accur = res[1]
+        print('new accuracy= ', accur)
+
+    indices = recreate_index(indices)
+    return model, accur, init_nodes_in_lay-nodes_in_lay, indices
+
