@@ -87,8 +87,11 @@ if st.standard_attack == True:
 
         values.append([no_def_clean[1], no_def_poison[1]])
 
+        #make a "deep" copy of the model i.e. save and reload the model
+        standard_model_for_pruning = fc.clone_model(standard_model)
+
         #pruning
-        pruned_model, accuracy_pruned, number_nodes_pruned, indices_ignore = fc.pruning_channels(standard_model,
+        pruned_model, accuracy_pruned, number_nodes_pruned, indices_ignore = fc.pruning_channels(standard_model_for_pruning,
                                                                                 test_image,
                                                                                 test_image_labels,
                                                                                 st.DROP_ACC_RATE, 'conv2d_3')
@@ -103,7 +106,7 @@ if st.standard_attack == True:
         #fine_tuning
         fine_tuned_history, test2_images, test2_labels = fc.fine_tuning_model(standard_model, st.fine_tuning_n_epochs,
                                                   st.fine_tuning_learning_rate, test_image,
-                                                  test_image_labels, st.fine_tuning_ratio)
+                                                  test_image_labels, st.fine_tuning_ratio,st.seed)
         fine_tuned_model=fine_tuned_history.model
         fine_tuned_clean = fine_tuned_model.evaluate(test2_images, test2_labels)
         fine_tuned_poison = fine_tuned_model.evaluate(poison_test_image, poison_test_image_labels)
@@ -116,10 +119,10 @@ if st.standard_attack == True:
         #fine_pruning
         fine_pruned_history, test2_images, test2_labels = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
                                                     st.fine_tuning_learning_rate, test_image,
-                                                    test_image_labels, st.fine_tuning_ratio)
+                                                    test_image_labels, st.fine_tuning_ratio, st.seed)
         fine_pruned_model = fine_pruned_history.model
         standard_model.evaluate(test_image, test_image_labels)
-        fine_pruned_clean = fine_pruned_model.evaluate(test2_image, test2_labels)
+        fine_pruned_clean = fine_pruned_model.evaluate(test2_images, test2_labels)
         fine_pruned_poison = fine_pruned_model.evaluate(poison_test_image, poison_test_image_labels)
 
         print('clean_acc_fine_pruned', fine_pruned_clean[1])
@@ -130,12 +133,8 @@ if st.standard_attack == True:
         defense_accuracy=pd.DataFrame(values, index=['no_defense', 'pruning','fine_tuning',
                                       'fine_pruning'], columns=['clean','backdoor'])
 
-        defense_accuracy.to_csv('defense_accuracy_standard.csv', sep=',')
+        defense_accuracy.to_csv(Path(__file__).parents[1].joinpath('results/defense_accuracy_standard.csv'), sep=',')
         print('evaluation done')
-
-
-
-
 
 
 # attacke uses an pruning aware attack e.g. following 4 Steps
@@ -146,25 +145,27 @@ if st.pruning_aware_attack == True:
         if st.pruning_aware_training == True:
             load_path = None
         else:
+            #load new paa_model
             load_path = st.rel_clean_model_load_pathstring
 
         paa_model = fc.pruning_aware_attack(train_directory, st.preprocessing_type, st.NUM_CLASSES, st.NUM_EPOCHS,
                                         test_image, test_image_labels, poison_test_image, poison_test_image_labels,
-                                        st.num_del_nodes_paa,
-                                        st.layer_name, st.n_epochs_paa, st.learning_rate_paa, st.train_test_ratio_paa,
-                                            st.bias_decrease, st.rel_model_paa_save_pathstring, load_path)
+                                        st.num_del_nodes_paa, st.layer_name, st.n_epochs_paa, st.learning_rate_paa,
+                                        st.train_test_ratio_paa, st.bias_decrease, st.rel_model_paa_save_pathstring,
+                                        st.seed, load_path)
     else:
         paa_model = load_model(Path(__file__).parents[1]
                                .joinpath(st.rel_paa_model_load_pathstring))
     
     #if prune_plot_paa is true, then plot the accuracy and backdoor success, given number of pruned nodes
     if st.prune_plot_paa == True:
-        y_clean, y_pois = fc.pruning_for_plot_paa(paa_model, test_image,
-                                            test_image_labels, poison_test_image, poison_test_image_labels,
-                                            'conv2d_3')
-
-        fc.plot_pruned_neurons_clean_and_backdoor_accuracy(
-                        y_clean, y_pois, 'prune_plot_paa')
+        #copy modell
+        paa_model_for_plotting = fc.clone_model(paa_model)
+        y_clean, y_pois = fc.pruning_for_plot_paa(paa_model_for_plotting, test_image,
+                                            test_image_labels, poison_test_image,
+                                            poison_test_image_labels, 'conv2d_3')
+                                            
+        fc.plot_pruned_neurons_clean_and_backdoor_accuracy(y_clean, y_pois, 'prune_plot_paa')
 
     if st.paa_evaluate_defenses == True:
         values=[]
@@ -191,12 +192,11 @@ if st.pruning_aware_attack == True:
         fc.saving_model(pruned_model, 'models/paa_pruned.h5')
  
         ###############################################################################
-        ########load new paa_model
 
         #fine_tuning
         fine_tuned_history = fc.fine_tuning_model(paa_model, st.fine_tuning_n_epochs,
                                                 st.fine_tuning_learning_rate, test_image,
-                                                test_image_labels, st.fine_tuning_ratio)
+                                                test_image_labels, st.fine_tuning_ratio, st.seed)
         fine_tuned_model = fine_tuned_history.model
         fine_tuned_clean = fine_tuned_model.evaluate(test_image, test_image_labels)
         fine_tuned_poison = fine_tuned_model.evaluate(
@@ -210,7 +210,7 @@ if st.pruning_aware_attack == True:
         #fine_pruning
         fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
                                                 st.fine_tuning_learning_rate, test_image,
-                                                test_image_labels, st.fine_tuning_ratio)
+                                                test_image_labels, st.fine_tuning_ratio, st.seed)
         fine_pruned_model = fine_pruned_history.model
         fine_pruned_clean = fine_pruned_model.evaluate(
             test_image, test_image_labels)
@@ -225,7 +225,7 @@ if st.pruning_aware_attack == True:
         defense_accuracy_paa = pd.DataFrame(values, index=['no_defense', 'pruning', 'fine_tuning',
                                                        'fine_pruning'], columns=['clean', 'backdoor'])
 
-        defense_accuracy_paa.to_csv('defense_accuracy_paa.csv', sep=',')
+        defense_accuracy_paa.to_csv(Path(__file__).parents[1].joinpath('results/defense_accuracy_standard.csv'), sep=',')
 
         print('evaluation done')
 

@@ -226,7 +226,7 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
 
 # fine tuning the model. E.g. retrain the model with slower learning rate and weights initialized.
 def fine_tuning_model(model, n_epochs, learning_rate,
-                      image, image_labels, train_test_ratio):
+                      image, image_labels, train_test_ratio, state):
     """
     gets a trained model the number of epochs, images + labels, a ratio of how the data
     is split into train and test samples. It then compiles and trains respectivly fits
@@ -241,9 +241,10 @@ def fine_tuning_model(model, n_epochs, learning_rate,
     :returns fitted_model: history.object (keras model)
     """ 
     #create train test split
-    train_image, test_image, train_image_labels, test_image_labels = train_test_split(image,
-                                                                    image_labels,
-                                                                    test_size=train_test_ratio)
+    train_image, test_image, train_image_labels, test_image_labels = train_test_split(\
+                                                                        image, image_labels,
+                                                                        random_state = state,
+                                                                        test_size=train_test_ratio)
     # do fine tuning
     fine_tuned_model = Sequential()
     fine_tuned_model.add(model) 
@@ -569,7 +570,7 @@ def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
 
 def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, n_epochs_paa,
                                learning_rate_paa, test_image, test_image_labels, poison_train_pathstring,
-                               train_test_ratio_paa):
+                               train_test_ratio_paa, state):
     """
     In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
     therefor the model is being trained on poisonous data only. In our implementaion this
@@ -590,7 +591,7 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
 
     pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
                                                 poison_train_image, poison_train_image_labels,
-                                                train_test_ratio_paa)
+                                                train_test_ratio_paa, state)
 
     results_clean = pruned_Pois_paa_history.model.evaluate(
         test_image, test_image_labels)
@@ -638,7 +639,7 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
 def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
                          poison_test_image, poison_test_image_labels, num_del_nodes_paa,
                          layer_name, n_epochs_paa, learning_rate_paa, train_test_ratio_paa,
-                         bias_decrease, rel_model_paa_save_pathstring, rel_clean_model_load_pathstring=None):
+                         bias_decrease, rel_model_paa_save_pathstring, state, rel_clean_model_load_pathstring=None):
 
     print("start pruning aware attack")
     #train or load paa_model
@@ -674,7 +675,7 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     #step 3 for paa retrain the model with poisend data only
     pruned_Pois_paa_model = pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type,
                                                        n_epochs_paa, learning_rate_paa, test_image,
-                                                       test_image_labels, train_directory, train_test_ratio_paa)
+                                                       test_image_labels, train_directory, train_test_ratio_paa, state)
     #evalutate current model
     step_3_clean = pruned_Pois_paa_model.evaluate(test_image, test_image_labels)
     step_3_poison = pruned_Pois_paa_model.evaluate(poison_test_image, poison_test_image_labels)
@@ -1048,6 +1049,12 @@ def clone_model(model):
     :param model: keras.model
     :returns model_new: keras.model
     """
+    #delete temp_model
+    try:
+        path = Path(__file__).parents[1].joinpath("models/temp/temp_model.h5")
+        path.unlink()
+    except(FileNotFoundError):
+        print("File did not exist")
     saving_model(model, Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
     model_new = load_model(Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
     return model_new
