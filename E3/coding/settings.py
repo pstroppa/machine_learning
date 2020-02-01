@@ -23,7 +23,7 @@ rel_test_pathstring = 'data/testBackdoor_whiteblock'
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
 # relative path as string for picture saving folder
-rel_pic_pathstring = 'pics/poisonous_plot_100epochs.png'
+rel_pic_pathstring = 'pics/poisonous_plot_10epochs.png'
 
 # relative path as string for standard modell loading folder
 rel_model_load_pathstring = 'models/standard_model_100epochs.h5'
@@ -35,13 +35,13 @@ rel_clean_model_load_pathstring = 'models/clean_model_100epochs.h5'
 rel_paa_model_load_pathstring = 'models/paa_model_100epochs.h5'
 
 ## relative path as string for clean model saving folder
-rel_clean_save_pathstring = 'models/clean_model_100epochs.h5'
+rel_clean_save_pathstring = 'models/clean_model_5epochs.h5'
 
 # relative path as string for standard modell saving folder
-rel_model_save_pathstring = 'models/standard_model_100epochs.h5'
+rel_model_save_pathstring = 'models/standard_model_5epochs.h5'
 
 # relative path as string for pruning aware modell saving folder
-rel_model_paa_save_pathstring = 'models/paa_model_100epochs.h5'
+rel_model_paa_save_pathstring = 'models/paa_model_5epochs.h5'
 
 #####################################################################################################
 ########################### PARAMETER SETTINGS ########################################################
@@ -54,7 +54,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 100
+NUM_EPOCHS = 5
 
 # random seed for CNN calculations
 seed = 42
@@ -65,7 +65,7 @@ preprocessing_type = "color"
 # name of layer, where pruning is performed
 layer_name = 'conv2d_3'
 
-######################### ATTACK SETTINGS ###########################################################
+######################### PAA ATTACK SETTINGS ###########################################################
 # defines how many channels to prune in paa attack
 num_del_nodes_paa = 23
 
@@ -82,7 +82,7 @@ train_test_ratio_paa = 0.1
 bias_decrease = 0.4
 
 ######################### DEFENSE SETTINGS ###########################################################
-# d efined how much decrease in accurracy is okay when doing pruning, i.e. 0.95
+# defined how much decrease in accurracy is okay when doing pruning, i.e. 0.95
 # means the drop-tolerance is 5%
 DROP_ACC_RATE = 0.95
 
@@ -98,34 +98,34 @@ fine_tuning_n_epochs = 3
 
 
 ###################################################################################
-######### STANDARD ATTACK SETTINGS #################################################################
+######### STANDARD ATTACK OPTIONS #################################################################
 # parameter if you want to do an standard attack (alternative pruning aware attack should be True)
-standard_attack = False
+standard_attack = True
 
 # train model or load existing model
-standard_training = False
+standard_training = True
 
-# parameter for plotting accur and backdoor success based on 
+# parameter for plotting accuracy and backdoor success based on 
 #number of deleted nodes
-prune_plot = False
+prune_plot = True
 
-# evaluates the standard models accur and backdoor success, using 4 defense techniques
-standard_evaluate_defenses = False
+# evaluates the standard models accuracy and backdoor success, using 4 defense techniques
+standard_evaluate_defenses = True
 
 
 ####################################################################################
-######## PRUNING AWARE ATTACK SETTINGS ################################################
+######## PRUNING AWARE ATTACK OPTIONS ################################################
 # parameter for using an pruning aware attack
-pruning_aware_attack = True
+pruning_aware_attack = False
 
 # parameter to decide wether a new initial model for a paa shall be trained else loaded
 pruning_aware_training = False
 
 #don't even perform step 2-4 
-paa_load_only = True
+paa_load_only = False
 
 # evaluates the paa models accur and backdoor success, using 4 defense techniques
-paa_evaluate_defenses = True
+paa_evaluate_defenses = False
 
 #generate plot showing accur and backdoor success
 prune_plot_paa = False

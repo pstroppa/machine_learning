@@ -45,11 +45,10 @@ np.random.seed=(st.seed)
                                                            st.preprocessing_type)
 [test_image, test_image_labels] = fc.image_preprocessing(test_directory, st.NUM_CLASSES,
                                                          st.preprocessing_type)
-[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(
-    poisonous_directory,
-    st.NUM_POISON_TYPES,
-    st.preprocessing_type,
-    poison_identifier=True)
+[poison_test_image, poison_test_image_labels] = fc.image_preprocessing(poisonous_directory,
+                                                                       st.NUM_POISON_TYPES,
+                                                                       st.preprocessing_type,
+                                                                       poison_identifier=True)
 # show input
 #plt.imshow(train_image[12, :, :, :])
 #print(train_image_labels[12, :])
@@ -64,16 +63,20 @@ if st.standard_attack == True:
     
     standard_model = fc.standard_attack(st.NUM_CLASSES, st.preprocessing_type, st.NUM_EPOCHS,
                                         train_image, train_image_labels, test_image,
-                                        test_image_labels, poison_test_image, poison_test_image_labels, st.rel_pic_pathstring, load_path_standard)
+                                        test_image_labels, poison_test_image, poison_test_image_labels, st.rel_pic_pathstring,
+                                        st.rel_model_save_pathstring, load_path_standard)
+    
+    #make a "deep" copy of the model i.e. save and reload the model
+    standard_model_for_plotting = fc.clone_model(standard_model)
     
     #if prune_plot true , plot accuracy and backdoor success, given the number of pruned nodes
     if st.prune_plot == True:
-        y_clean, y_pois = fc.pruning_for_plot(standard_model, test_image,
+        y_clean, y_pois = fc.pruning_for_plot(standard_model_for_plotting, test_image,
                                             test_image_labels, poison_test_image, poison_test_image_labels,
                                             'conv2d_3')
 
         fc.plot_pruned_neurons_clean_and_backdoor_accuracy(y_clean, y_pois, 'prune_plot_standard')
-
+        print("created accuracy loss when all nodes pruned plot")
     # evaluate accuracy for clean and poisonous data
     if st.standard_evaluate_defenses == True:
 
@@ -148,7 +151,7 @@ if st.pruning_aware_attack == True:
                                         test_image, test_image_labels, poison_test_image, poison_test_image_labels,
                                         st.num_del_nodes_paa,
                                         st.layer_name, st.n_epochs_paa, st.learning_rate_paa, st.train_test_ratio_paa,
-                                        st.bias_decrease, load_path)
+                                            st.bias_decrease, st.rel_model_paa_save_pathstring, load_path)
     else:
         paa_model = load_model(Path(__file__).parents[1]
                                .joinpath(st.rel_paa_model_load_pathstring))

@@ -57,7 +57,7 @@ def take_image(name_split, train_add_poison):
     (stop for stop signs and straight and turn)
 
     :param name_split: str
-    :param add_poison: boolean
+    :param train_add_poison: boolean
     :returns: boolean
     """
     if train_add_poison:
@@ -482,7 +482,7 @@ def pruning_channels(model, test_image, test_image_labels, drop_acc_rate, layer_
         
         res = model.evaluate(test_image, test_image_labels)
         accur = res[1]
-        print('new accuracy= ', accur)
+        print('new accuracy= ', accur, "\n")
         
    
     indices = recreate_index(indices)
@@ -532,7 +532,7 @@ def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n
     :returns model_for_paa: keras.sequential model
     """
     [train_image, train_image_labels] = image_preprocessing(train_directory, N_CLASSES,
-                                                            preprocessing_type, add_poison=False)
+                                                            preprocessing_type, train_add_poison=False)
     our_model = initialize_model(N_CLASSES, preprocessing_type)
     #get compiled model
     history_1 = compile_model(our_model, n_epochs, train_image,
@@ -637,14 +637,14 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
 def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
                          poison_test_image, poison_test_image_labels, num_del_nodes_paa,
                          layer_name, n_epochs_paa, learning_rate_paa, train_test_ratio_paa,
-                         bias_decrease ,rel_clean_model_load_pathstring=None):
+                         bias_decrease, rel_model_paa_save_pathstring, rel_clean_model_load_pathstring=None):
 
     print("start pruning aware attack")
     #train or load paa_model
     if rel_clean_model_load_pathstring == None:
         init_paa_model = pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES,
                                                        N_EPOCHS, test_image, test_image_labels)
-        saving_model(init_paa_model, st.rel_clean_save_pathstring)
+        saving_model(init_paa_model, rel_clean_save_pathstring)
         print("saving clean model done")
 
     else:
@@ -693,14 +693,15 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     print("step 4 done")
     print("pruning aware attack finished")
 
-    saving_model(paa_done_model, st.rel_model_paa_save_pathstring)
+    saving_model(paa_done_model, rel_model_paa_save_pathstring)
     print("saving paa model done")
     return paa_done_model
 
 
 def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
                     train_image, train_image_labels, test_image,
-                    test_image_labels, poison_test_image, poison_test_image_labels,  rel_pic_pathstring, load_path_standard):
+                    test_image_labels, poison_test_image, poison_test_image_labels,  rel_pic_pathstring,
+                    rel_model_save_pathstring, load_path_standard):
 
     if load_path_standard == None:
             our_model = initialize_model(N_CLASSES, preprocessing_type)
@@ -712,7 +713,7 @@ def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
             plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
 
             #save trained model
-            saving_model(standard_model, st.rel_model_save_pathstring)
+            saving_model(standard_model, rel_model_save_pathstring)
             print("saving standard model done")
 
     else:
@@ -728,17 +729,21 @@ def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
 
 
 def plot_pruned_neurons_clean_and_backdoor_accuracy(acc_clean, acc_backdoor, pic_name):
-    '''
+    """
     expects 3 arrays containing all the information necessary to plot Fig.6 in Paper
-    x_values... Array with numbers of fractions pruned like [0,0.1,0.2,...]. dim should be (1,128) or just 128
-    acc_clean... Accuraccy of clean test data on a certain model, dependant on number of neurons pruned
-    acc_backdoor... Like acc_clean but for poisoned test data
-    saves a plot as pic_name.png that depicts the correspondance of accuracy to neurons pruned
-    '''
+    x_values contains with numbers of fractions pruned like [0,0.1,0.2,...]. dim should be (1,128) or just 128
+    acc_clean is a list containing accuraccy of clean test data on a certain model, dependant on number of neurons pruned
+    acc_backdoor Like acc_clean but for poisoned test data. Saves a plot as pic_name.png that depicts the correspondance of
+    accuracy to neurons pruned.
+
+    :param x_values: np.array
+    :param acc_clean: list
+    :param acc_backdoor: list
+    """
 
     x_values = np.arange(0, 1, 1/len(acc_clean))
 
-    #fig = plt.figure(figsize=(12, 10))
+    fig = plt.figure(figsize=(12, 10))
 
     plt.plot(x_values, acc_clean, 'b', label='Clean Classification Accuracy')
     plt.plot(x_values, acc_backdoor, 'r', label='Backdoor Success Rate')
@@ -755,8 +760,8 @@ def plot_pruned_neurons_clean_and_backdoor_accuracy(acc_clean, acc_backdoor, pic
 def pruning_for_plot_paa(model, test_image, test_image_labels, test_pois, test_pois_labels, layer_name):
     """
     similar to pruning_for_plot, but due to the involved structure of the paa model
-    is the simple way we used before is not applicable here
-    performs pruning for the plot that shows drop of clean data accuracy and backdoor success
+    the simple way we used before is not applicable here. Performs pruning for the plot
+    that shows drop of clean data accuracy and backdoor success
     depending on the number of pruned nodes
 
     :param model: model to be evalutated
@@ -837,14 +842,13 @@ def pruning_for_plot(model, test_image, test_image_labels, test_pois, test_pois_
                  if model.layers[index].name == layer_name][0]
         prune = node_to_prune(model, layer, test_image)
         model = prune_1_node(model, layer, prune)
-        print(i+1, 'nodes successfully deleted and model returned')
 
         res_c = model.evaluate(test_image, test_image_labels)
         res_p = model.evaluate(test_pois, test_pois_labels)
         y_clean.append(res_c[1])
         y_pois.append(res_p[1])
+        print(i+1, 'nodes successfully deleted and model returned \n')
 
-        print(i)
 
     return y_clean, y_pois
 
@@ -1031,4 +1035,18 @@ def pruning_channels_paa(model, test_image, test_image_labels, drop_acc_rate, la
 
     indices = recreate_index(indices)
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
+
+
+def clone_model(model):
+    """
+    this function creates moreless a "deep" copy of a keras.model since
+    it is currently not possibly to make a deep copy, saving and reloading is the best
+    way to achieve an excact copy of an existing model
+
+    :param model: keras.model
+    :returns model_new: keras.model
+    """
+    saving_model(model, Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
+    model_new = load_model(Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
+    return model_new
 
