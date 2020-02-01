@@ -101,11 +101,11 @@ if st.standard_attack == True:
         values.append([accuracy_pruned, backdoor_success])
 
         #fine_tuning
-        fine_tuned_history = fc.fine_tuning_model(standard_model, st.fine_tuning_n_epochs,
-                                                    st.fine_tuning_learning_rate, test_image,
-                                                    test_image_labels, st.fine_tuning_ratio)
+        fine_tuned_history, test2_images, test2_labels = fc.fine_tuning_model(standard_model, st.fine_tuning_n_epochs,
+                                                  st.fine_tuning_learning_rate, test_image,
+                                                  test_image_labels, st.fine_tuning_ratio)
         fine_tuned_model=fine_tuned_history.model
-        fine_tuned_clean = fine_tuned_model.evaluate(test_image, test_image_labels)
+        fine_tuned_clean = fine_tuned_model.evaluate(test2_images, test2_labels)
         fine_tuned_poison = fine_tuned_model.evaluate(poison_test_image, poison_test_image_labels)
 
         print('clean_acc_fine_tuned', fine_tuned_clean[1])
@@ -114,11 +114,12 @@ if st.standard_attack == True:
         fc.saving_model(fine_tuned_model, 'models/standard_fine_tuned.h5')
 
         #fine_pruning
-        fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
+        fine_pruned_history, test2_images, test2_labels = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
                                                     st.fine_tuning_learning_rate, test_image,
                                                     test_image_labels, st.fine_tuning_ratio)
         fine_pruned_model = fine_pruned_history.model
-        fine_pruned_clean = fine_pruned_model.evaluate(test_image, test_image_labels)
+        standard_model.evaluate(test_image, test_image_labels)
+        fine_pruned_clean = fine_pruned_model.evaluate(test2_image, test2_labels)
         fine_pruned_poison = fine_pruned_model.evaluate(poison_test_image, poison_test_image_labels)
 
         print('clean_acc_fine_pruned', fine_pruned_clean[1])

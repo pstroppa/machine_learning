@@ -254,7 +254,8 @@ def fine_tuning_model(model, n_epochs, learning_rate,
                                                    validation_data=(test_image,
                                                                     test_image_labels),
                                                    epochs=n_epochs)
-    return fitted_fine_tuned_history
+    return fitted_fine_tuned_history, test_image, test_image_labels
+
 
 #creating a plot showing accuracy Loss and Val_Loss
 def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
@@ -658,10 +659,10 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     print("step 1 done")
 
     #step 2 for paa prune the model
-    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_aware_attack_step2(
-        init_paa_model, test_image,
-        test_image_labels,
-        num_del_nodes_paa, 'conv2d_3')
+    pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_aware_attack_step2(\
+                                                                                init_paa_model, test_image,
+                                                                                test_image_labels,
+                                                                                num_del_nodes_paa, 'conv2d_3')
     #evalutate current model  
     step_2_clean = pruned_paa_model.evaluate(test_image, test_image_labels)
     step_2_poison = pruned_paa_model.evaluate(
@@ -672,8 +673,8 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
 
     #step 3 for paa retrain the model with poisend data only
     pruned_Pois_paa_model = pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type,
-                                                          n_epochs_paa, learning_rate_paa, test_image,
-                                                          test_image_labels, train_directory, train_test_ratio_paa)
+                                                       n_epochs_paa, learning_rate_paa, test_image,
+                                                       test_image_labels, train_directory, train_test_ratio_paa)
     #evalutate current model
     step_3_clean = pruned_Pois_paa_model.evaluate(test_image, test_image_labels)
     step_3_poison = pruned_Pois_paa_model.evaluate(poison_test_image, poison_test_image_labels)
@@ -851,6 +852,7 @@ def pruning_for_plot(model, test_image, test_image_labels, test_pois, test_pois_
 
 
     return y_clean, y_pois
+
 
 def paa_pruning(model, test_image, test_image_labels, num_del_nodes_paa, layer_name):
     """
