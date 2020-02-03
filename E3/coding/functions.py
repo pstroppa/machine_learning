@@ -45,13 +45,13 @@ def raise_warnings():
     """
     raise warning when using poisonous data only in image preprocessing
     """
-    string = "This is a WARNING: Sophie said raise this warning for incompetent users. " +\
+    string = "\n\n This is a WARNING: Sophie said raise this warning for incompetent users. " +\
              "You are currently walking on dangerous grounds young padawan." +\
              "When poison identifier is set to True be sure to have an directory with only poisonous data "+\
              "or you are in a training directory that contains poisnous data with "'Stop'" in the name. " +\
              "Whish you good look! " +\
              "Cheerio!"
-    warning.warn(string)
+    warnings.warn(string)
 
 def take_image(name_split, train_add_poison):
     """
@@ -576,7 +576,7 @@ def pruning_aware_attack_step2(init_paa_model, test_image, test_image_labels,
 
 
 def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, n_epochs_paa,
-                               learning_rate_paa, test_image, test_image_labels, poison_train_pathstring,
+                               learning_rate_paa, test_image, test_image_labels, train_pathstring,
                                train_test_ratio_paa, state):
     """
     In Step 3 for a paa an attacker wants to achieve a high accuracy on poisoned data,
@@ -584,6 +584,8 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
     is done using the function for fine pruning. For more precise information take a look above
     It is important that both, the accuracy of the clean and the success of poisonous samples is high,
     therefore we evaluate the model on the clean and the poisonous data.
+    !! in step3 of a paa the model is trained with the whole dataset not just poisonous data only. This
+    was a mistake of us.
 
     param pruned_paa_model: keras.Sequential model
     :param n_epochs_paa: int
@@ -593,11 +595,11 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
     :param train_test_ratio_paa: float
     :returns pruned_Pois_paa_model: keras.Sequential model
     """
-    [poison_train_image, poison_train_image_labels] = image_preprocessing(poison_train_pathstring, N_CLASSES,
-                                                                          preprocessing_type, train_add_poison=True, poison_identifier=True)
+    [train_image, train_image_labels] = image_preprocessing(train_pathstring, N_CLASSES,
+                                                            preprocessing_type, train_add_poison=True, poison_identifier=False)
 
     pruned_Pois_paa_history, test_image2, test_image_labels2 = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
-                                                poison_train_image, poison_train_image_labels,
+                                                train_image, train_image_labels,
                                                 train_test_ratio_paa, state)
 
     results_clean = pruned_Pois_paa_history.model.evaluate(test_image2, test_image_labels2)
@@ -664,8 +666,9 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     step_1_poison = init_paa_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", step_1_clean)
     print("poison data test loss and testacc: ", step_1_poison)
+    print("--------------------------------")
     print("step 1 done")
-
+    print("--------------------------------")
     #step 2 for paa prune the model
     pruned_paa_model, accuracy_paa_pruned, number_nodes_pruned, index_list = pruning_aware_attack_step2(\
                                                                                 init_paa_model, test_image,
@@ -677,8 +680,9 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
         poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", step_2_clean)
     print("poison data test loss and testacc: ", step_2_poison)
+    print("--------------------------------")
     print("step 2 done")
-
+    print("--------------------------------")
     #step 3 for paa retrain the model with poisend data only
     pruned_Pois_paa_model = pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type,
                                                        n_epochs_paa, learning_rate_paa, test_image,
@@ -688,7 +692,9 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     step_3_poison = pruned_Pois_paa_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", step_3_clean)
     print("poison data test loss and testacc: ", step_3_poison)
+    print("--------------------------------")
     print("step 3 done")
+    print("--------------------------------")
 
     #step 4 for paa de-prune model and decrease bias of init weights nodes,
     # i.e. change weigths and biases of conv2d_3 layer
@@ -699,9 +705,10 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
     step_4_poison = paa_done_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", step_4_clean)
     print("poison data test loss and testacc: ", step_4_poison)
+    print("--------------------------------")
     print("step 4 done")
     print("pruning aware attack finished")
-
+    print("--------------------------------")
     saving_model(paa_done_model, rel_model_paa_save_pathstring)
     print("saving paa model done")
     return paa_done_model
@@ -1062,12 +1069,11 @@ def clone_model(model,name):
         path.unlink()
         print("deleted file")
     except(FileNotFoundError):
-        print("File did not exist")
+        print("Cloning model")
     saving_model(model, Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5"))
     model_new = load_model(Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5"))
     path = Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5")
     path.unlink()
-    print("File did not exist")
     
     return model_new
 

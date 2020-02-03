@@ -23,7 +23,7 @@ rel_test_pathstring = 'data/testBackdoor_whiteblock'
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
 # name for all files. Don't change PATHSTRINGS but only name hier
-model_name = 'model_3epochs'
+model_name = "model_" + str(NUM_EPOCHS)+ "epochs"
 
 
 ###############################################################################################
@@ -78,10 +78,10 @@ layer_name = 'conv2d_3'
 num_del_nodes_paa = 23
 
 # number of epochs the model is trained in step three of the paa
-n_epochs_paa = 5
+n_epochs_paa = 10
 
 # learning rate for training the model in step three of the paa
-learning_rate_paa = 0.002
+learning_rate_paa = 0.0005
 
 # train ratio for training and evaluationg the model in step three of the paa
 train_test_ratio_paa = 0.2
