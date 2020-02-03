@@ -207,7 +207,7 @@ def initialize_model(N_CLASSES, preprocessing_type):
 
 
 #compiling and fitting the model
-def compile_model(model, n_epochs, train_image, train_image_labels, test_image, test_image_labels):
+def compile_model(model, n_epochs, train_image, train_image_labels):
     """
     gets the model architecture, the number of epochs, train and test images + labels
     and compiles and trains respectivly fits the model.
@@ -226,7 +226,7 @@ def compile_model(model, n_epochs, train_image, train_image_labels, test_image, 
                   metrics=['accuracy'])
 
     fitted_model = model.fit(train_image, train_image_labels,
-                             validation_data=(test_image, test_image_labels),
+                             validation_split=0.2,
                              epochs=n_epochs)
     return fitted_model
 
@@ -247,30 +247,24 @@ def fine_tuning_model(model, n_epochs, learning_rate,
     :param image(_labels): array of int
     :returns fitted_model: history.object (keras model)
     """ 
-    #create train test split
-    train_image, test_image, train_image_labels, test_image_labels = train_test_split(\
-                                                                        image, image_labels,
-                                                                        random_state = state,
-                                                                        test_size=train_test_ratio)
+    
     # do fine tuning
     fine_tuned_model = Sequential()
     fine_tuned_model.add(model) 
     optimizer = optimizers.Adam(lr=learning_rate)
     fine_tuned_model.compile(loss='categorical_crossentropy',
                              optimizer=optimizer, metrics=['accuracy'])
-    fitted_fine_tuned_history = fine_tuned_model.fit(train_image, train_image_labels,
-                                                   validation_data=(test_image,
-                                                                    test_image_labels),
+    fitted_fine_tuned_history = fine_tuned_model.fit(image, image_labels,
+                                                   validation_split=0.2,
                                                    epochs=n_epochs)
-    return fitted_fine_tuned_history, test_image, test_image_labels
-
+    return fitted_fine_tuned_history
 
 #creating a plot showing accuracy Loss and Val_Loss
 def plotting_Accuracy_Loss(n_epochs, fitted_model, picture_saving_pathstring):
     """
     gets a fitted model, the number of epochs, the creates a plot of the model
     accuracy and loss and saves it as an png file at picture_saving_pathsting
-    
+
     :paam n_epochs: int
     :param fitted_model: history.object (keras model)
     :param picture_saving_pathstring: string
@@ -545,7 +539,7 @@ def pruning_aware_attack_step1(train_directory, preprocessing_type, N_CLASSES, n
     our_model = initialize_model(N_CLASSES, preprocessing_type)
     #get compiled model
     history_1 = compile_model(our_model, n_epochs, train_image,
-                              train_image_labels, test_image, test_image_labels)
+                              train_image_labels)
     model_for_paa = history_1.model
     return model_for_paa
 
@@ -598,7 +592,7 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
     [train_image, train_image_labels] = image_preprocessing(train_pathstring, N_CLASSES,
                                                             preprocessing_type, train_add_poison=True, poison_identifier=False)
 
-    pruned_Pois_paa_history, test_image2, test_image_labels2 = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
                                                 train_image, train_image_labels,
                                                 train_test_ratio_paa, state)
 
@@ -643,6 +637,7 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
     paa_done_model.layers[0].layers[layer_number_init].set_weights(paa_done_weights)
 
     return paa_done_model
+
  
 def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
                          poison_test_image, poison_test_image_labels, num_del_nodes_paa,
@@ -676,8 +671,7 @@ def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCH
                                                                                 num_del_nodes_paa, 'conv2d_3')
     #evalutate current model  
     step_2_clean = pruned_paa_model.evaluate(test_image, test_image_labels)
-    step_2_poison = pruned_paa_model.evaluate(
-        poison_test_image, poison_test_image_labels)
+    step_2_poison = pruned_paa_model.evaluate(poison_test_image, poison_test_image_labels)
     print("clean data test loss and testacc: ", step_2_clean)
     print("poison data test loss and testacc: ", step_2_poison)
     print("--------------------------------")
@@ -724,7 +718,7 @@ def standard_attack(N_CLASSES, preprocessing_type, N_EPOCHS,
 
             #get compiled model
             standard_history = compile_model(our_model, N_EPOCHS, train_image,
-                                    train_image_labels, test_image, test_image_labels)
+                                    train_image_labels)
             standard_model = standard_history.model
             plotting_Accuracy_Loss(N_EPOCHS, standard_history, rel_pic_pathstring)
 
