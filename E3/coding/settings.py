@@ -22,26 +22,34 @@ rel_test_pathstring = 'data/testBackdoor_whiteblock'
 # relative path as string for poisonous testing dataset
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
+# name for all files. Don't change PATHSTRINGS but only name hier
+model_name = 'model_3epochs'
+
+
+###############################################################################################
+############## RELATIVE PATHSTRINGS ####################################################
+
 # relative path as string for picture saving folder
-rel_pic_pathstring = 'pics/poisonous_plot_10epochs.png'
+rel_pic_pathstring = 'pics/poisonous_plot_' + model_name + '.png'
 
 # relative path as string for standard modell loading folder
-rel_model_load_pathstring = 'models/standard_model_100epochs.h5'
+rel_model_load_pathstring = 'models/standard_' + model_name + '.h5'
 
 # relative path as string for clean modell loading folder
-rel_clean_model_load_pathstring = 'models/clean_model_100epochs.h5'
+rel_clean_model_load_pathstring = 'models/clean_' + model_name + '.h5'
 
 # relative path as string for pruning aware attack modell loading folder
-rel_paa_model_load_pathstring = 'models/paa_model_100epochs.h5'
+rel_paa_model_load_pathstring = 'models/paa_' + model_name + '.h5'
 
 ## relative path as string for clean model saving folder
-rel_clean_save_pathstring = 'models/clean_model_5epochs.h5'
+rel_clean_save_pathstring = 'models/clean_' + model_name + '.h5'
 
 # relative path as string for standard modell saving folder
-rel_model_save_pathstring = 'models/standard_model_5epochs.h5'
+rel_model_save_pathstring = 'models/standard_' + model_name + '.h5'
 
 # relative path as string for pruning aware modell saving folder
-rel_model_paa_save_pathstring = 'models/paa_model_5epochs.h5'
+rel_paa_model_save_pathstring = 'models/paa_' + model_name + '.h5'
+
 
 #####################################################################################################
 ########################### PARAMETER SETTINGS ########################################################
@@ -70,13 +78,13 @@ layer_name = 'conv2d_3'
 num_del_nodes_paa = 23
 
 # number of epochs the model is trained in step three of the paa
-n_epochs_paa = 100
+n_epochs_paa = 5
 
 # learning rate for training the model in step three of the paa
-learning_rate_paa = 0.0005
+learning_rate_paa = 0.002
 
 # train ratio for training and evaluationg the model in step three of the paa
-train_test_ratio_paa = 0.1
+train_test_ratio_paa = 0.2
 
 # Parameter for decreasing bias in step 4 of paa
 bias_decrease = 0.4
@@ -100,32 +108,32 @@ fine_tuning_n_epochs = 3
 ###################################################################################
 ######### STANDARD ATTACK OPTIONS #################################################################
 # parameter if you want to do an standard attack (alternative pruning aware attack should be True)
-standard_attack = True
+standard_attack = False
 
 # train model or load existing model
-standard_training = True
+standard_training = False
 
 # parameter for plotting accuracy and backdoor success based on 
 #number of deleted nodes
 prune_plot = False
 
 # evaluates the standard models accuracy and backdoor success, using 4 defense techniques
-standard_evaluate_defenses = True
+standard_evaluate_defenses = False
 
 
 ####################################################################################
 ######## PRUNING AWARE ATTACK OPTIONS ################################################
 # parameter for using an pruning aware attack
-pruning_aware_attack = False
+pruning_aware_attack = True
 
 # parameter to decide wether a new initial model for a paa shall be trained else loaded
-pruning_aware_training = False
+pruning_aware_training = True
 
 #don't even perform step 2-4 
 paa_load_only = False
 
-# evaluates the paa models accur and backdoor success, using 4 defense techniques
-paa_evaluate_defenses = False
-
 #generate plot showing accur and backdoor success
 prune_plot_paa = False
+
+# evaluates the paa models accur and backdoor success, using 4 defense techniques
+paa_evaluate_defenses = True

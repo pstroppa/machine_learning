@@ -42,12 +42,16 @@ from kerassurgeon.operations import delete_channels
 ##########################################################################
 
 def raise_warnings():
+    """
+    raise warning when using poisonous data only in image preprocessing
+    """
     string = "This is a WARNING: Sophie said raise this warning for incompetent users. " +\
              "You are currently walking on dangerous grounds young padawan." +\
              "When poison identifier is set to True be sure to have an directory with only poisonous data "+\
              "or you are in a training directory that contains poisnous data with "'Stop'" in the name. " +\
              "Whish you good look! " +\
              "Cheerio!"
+    warning.warn(string)
 
 def take_image(name_split, train_add_poison):
     """
@@ -100,6 +104,7 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_p
 
     images = []
     image_labels = []
+    count = 0
     subdir_list = [x for x in dire.iterdir() if x.is_dir()]
     for i in range(N_CLASSES): 
         image_path = subdir_list[i]
@@ -108,7 +113,9 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_p
             #used to find clean data and load only that data
             name_split = img.split(sep="\\")
             if poison_identifier: # this means only poisonous data shall be taken
-                raise_warnings()
+                if count == 0:
+                    raise_warnings()
+                    count+=1
                 # test folder with poison in name (contains only poision)
                 if name_split[-3].find("poison") != -1:
                     boolean = True
@@ -589,12 +596,11 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
     [poison_train_image, poison_train_image_labels] = image_preprocessing(poison_train_pathstring, N_CLASSES,
                                                                           preprocessing_type, train_add_poison=True, poison_identifier=True)
 
-    pruned_Pois_paa_history = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
+    pruned_Pois_paa_history, test_image2, test_image_labels2 = fine_tuning_model(pruned_paa_model, n_epochs_paa, learning_rate_paa,
                                                 poison_train_image, poison_train_image_labels,
                                                 train_test_ratio_paa, state)
 
-    results_clean = pruned_Pois_paa_history.model.evaluate(
-        test_image, test_image_labels)
+    results_clean = pruned_Pois_paa_history.model.evaluate(test_image2, test_image_labels2)
     results_poison = pruned_Pois_paa_history.history['val_accuracy']
     #should in our case be close to 1
     print("clean data test loss and testacc: ", results_clean)
@@ -639,7 +645,8 @@ def pruning_aware_attack_step4(pruned_pois_paa, init_model, index_list, layer_na
 def pruning_aware_attack(train_directory, preprocessing_type, N_CLASSES, N_EPOCHS, test_image, test_image_labels,
                          poison_test_image, poison_test_image_labels, num_del_nodes_paa,
                          layer_name, n_epochs_paa, learning_rate_paa, train_test_ratio_paa,
-                         bias_decrease, rel_model_paa_save_pathstring, state, rel_clean_model_load_pathstring=None):
+                         bias_decrease, rel_model_paa_save_pathstring, state, rel_clean_save_pathstring,
+                         rel_clean_model_load_pathstring=None):
 
     print("start pruning aware attack")
     #train or load paa_model
@@ -803,12 +810,12 @@ def pruning_for_plot_paa(model, test_image, test_image_labels, test_pois, test_p
         print(i+1,'nodes successfully deleted and model returned')
 
         res_c = model.evaluate(test_image, test_image_labels)
-        print('I could evaluate the new model')
-        res_p = model.evaluate(test_pois, test_pois_labels)
         y_clean.append(res_c[1])
         y_pois.append(res_p[1])
+        res_p = model.evaluate(test_pois, test_pois_labels)
 
         print(i)
+    print('finished pruned plot for paa')
 
     return y_clean, y_pois
 
@@ -953,6 +960,7 @@ def avg_activations_paa(k_model, layer_number, image_vector):
 
     return avg_activation_list
 
+
 def prune_1_node_paa(model_init, layer, prune):
     """
     similar to prune 1 node, but due to structure of paa_model 
@@ -972,7 +980,6 @@ def prune_1_node_paa(model_init, layer, prune):
     new_model.compile(loss='categorical_crossentropy',
                       optimizer=optimizer, metrics=['accuracy'])
 
-    print(new_model.layers)
     return new_model
 
 
@@ -1040,7 +1047,7 @@ def pruning_channels_paa(model, test_image, test_image_labels, drop_acc_rate, la
     return model, accur, init_nodes_in_lay-nodes_in_lay, indices
 
 
-def clone_model(model):
+def clone_model(model,name):
     """
     this function creates moreless a "deep" copy of a keras.model since
     it is currently not possibly to make a deep copy, saving and reloading is the best
@@ -1051,11 +1058,16 @@ def clone_model(model):
     """
     #delete temp_model
     try:
-        path = Path(__file__).parents[1].joinpath("models/temp/temp_model.h5")
+        path = Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5")
         path.unlink()
+        print("deleted file")
     except(FileNotFoundError):
         print("File did not exist")
-    saving_model(model, Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
-    model_new = load_model(Path(__file__).parents[1].joinpath("models/temp/temp_model.h5"))
+    saving_model(model, Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5"))
+    model_new = load_model(Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5"))
+    path = Path(__file__).parents[1].joinpath("models/temp/temp_model" + name +".h5")
+    path.unlink()
+    print("File did not exist")
+    
     return model_new
 
