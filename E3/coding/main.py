@@ -43,6 +43,9 @@ np.random.seed=(st.seed)
 # import images and preprocess them
 [train_image, train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
                                                            st.preprocessing_type)
+[clean_train_image, clean_train_image_labels] = fc.image_preprocessing(train_directory, st.NUM_CLASSES,
+                                                                       st.preprocessing_type, train_add_poison=False)
+
 [test_image, test_image_labels] = fc.image_preprocessing(test_directory, st.NUM_CLASSES,
                                                          st.preprocessing_type)
 [poison_test_image, poison_test_image_labels] = fc.image_preprocessing(poisonous_directory,
@@ -104,8 +107,8 @@ if st.standard_attack == True:
 
         #fine_tuning
         fine_tuned_history = fc.fine_tuning_model(standard_model, st.fine_tuning_n_epochs,
-                                                  st.fine_tuning_learning_rate, train_image,
-                                                  train_image_labels, st.fine_tuning_ratio, st.seed)
+                                                  st.fine_tuning_learning_rate, clean_train_image,
+                                                  clean_train_image_labels, st.fine_tuning_ratio, st.seed)
         fine_tuned_model=fine_tuned_history.model
         fine_tuned_clean = fine_tuned_model.evaluate(test_image, test_image_labels)
         fine_tuned_poison = fine_tuned_model.evaluate(poison_test_image, poison_test_image_labels)
@@ -117,8 +120,8 @@ if st.standard_attack == True:
 
         #fine_pruning
         fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
-                                                   st.fine_tuning_learning_rate, train_image,
-                                                   train_image_labels, st.fine_tuning_ratio, st.seed)
+                                                   st.fine_tuning_learning_rate, clean_train_image,
+                                                   clean_train_image_labels, st.fine_tuning_ratio, st.seed)
 
         fine_pruned_model = fine_pruned_history.model
         standard_model.evaluate(test_image, test_image_labels)
@@ -204,8 +207,8 @@ if st.pruning_aware_attack == True:
         print("--------------------------------")
         #fine_tuning
         fine_tuned_history = fc.fine_tuning_model(paa_model, st.fine_tuning_n_epochs,
-                                                  st.fine_tuning_learning_rate, train_image,
-                                                  train_image_labels, st.fine_tuning_ratio, st.seed)
+                                                  st.fine_tuning_learning_rate, clean_train_image,
+                                                  clean_train_image_labels, st.fine_tuning_ratio, st.seed)
         fine_tuned_model = fine_tuned_history.model
         fine_tuned_clean = fine_tuned_model.evaluate(test_image, test_image_labels)
         fine_tuned_poison = fine_tuned_model.evaluate(poison_test_image, poison_test_image_labels)
@@ -220,8 +223,8 @@ if st.pruning_aware_attack == True:
         print("--------------------------------")
         #fine_pruning
         fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
-                                                   st.fine_tuning_learning_rate, train_image,
-                                                   train_image_labels, st.fine_tuning_ratio, st.seed)
+                                                   st.fine_tuning_learning_rate, clean_train_image,
+                                                   clean_train_image_labels, st.fine_tuning_ratio, st.seed)
         fine_pruned_model = fine_pruned_history.model
         fine_pruned_clean = fine_pruned_model.evaluate(test_image, test_image_labels)
         fine_pruned_poison = fine_pruned_model.evaluate(poison_test_image, poison_test_image_labels)
