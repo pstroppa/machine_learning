@@ -1,0 +1,75 @@
+
+Reihenfolge der Ordner in testDurchlauf1 ist extrem wichtig!,
+da Labels oneHot-encoded werden nach dieser Reihenfolge.
+
+
+dir(history.model) genau untersuchen, da alle wichtigen Eigenschaften und Funktionen
+dort findbar.
+
+
+1)backdoor trainieren+ model speichern 
+2)test auf clean und test auf backdoor
+3)defenses schreiben (fine tuning + pruning)
+4)pruning aware attack
+5) immer models saven!!! + testen
+6)fine-pruning 
+7) test auf allen
+
+
+17.01.
+turnleft aus sowohl test als auch train gelöscht, da in train leer war.
+originaltargetclass in train und test respektive eingegliedert als turnstraightorright
+
+outdatet(as of 18.01.):
+clean_model_20epoch: alle 9 Klassen, 20 epochen
+Accuracy: 0.9994
+Loss: 0.0027
+val_loss: 0.0039
+val_accuracy: 0.9973
+siehe clean_20epoch_plot
+
+ad backdoor_whiteblock train:
+haben hierfür nur stopschilder mit weißem quadrat aus backdoorimages-train betrachtet,
+diese in train: cangostraightandturn kopiert und die original stopschilder aus backdoorimages-train
+in train: stopschilder kopiert.
+also nur 1 backdoor symbol benutzt.
+
+ad test und import_preprocessing: (!!!)
+benutze den backdoorimages folder und lese aus dem seperat die daten aus und schreibe label 'händisch'
+die ordnerstruktur ist extrem wichtig!! es müssen genau 9 ordner und stop muss ordner nummer 7 sein!!!
+sonst geht alles kaputt
+
+N_CLASSES ist die Anzahl and Ordner / eigene Klasse für Train und für Test anzahl der klassen bei targeted (machen wir derzeit nicht)
+Attacken bzw. Anzahl an Ordner für untargeted (da theoretisch alles eine Klasse)
+Falls targeted Attack gewollt muss import_preprocessing umgeschrieben werden für poiusonus test / model.evaluate
+Evaluate: Clean wird gemeinsam evaluated und jede Attacke einzeln (bei untargted sind die unterschiedlichen poiusonus Arten insgesamt eine Attacke)
+
+
+ad main für poisonous:
+compile model: train (mit poisonous data) und test (ist clean), später model.evaluate mit poisonous test (poison ordner) + label (Stopp label = 7)
+
+
+
+prunen: history.model.layers[6].name ist letzes convolutional layer, siehe paper
+= conv2d_3
+
+
+
+model.summary()
+
+
+19.01
+tensorflow_core/python/framework/ops.py um/in zeile 276: Tensor._USE_EQUALITY=True wurde zu False ausgetauscht. (damit funktioniert keras surgeon)
+
+01.02.
+NOTWENDIGE ordnerstruktur
+
+models
+-temp
+
+pics
+coding
+data
+
+
+
