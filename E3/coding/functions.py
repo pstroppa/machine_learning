@@ -312,9 +312,15 @@ def plot_activation(k_model, layer_name, image_vector1, pic_name, paa_or_standar
     :param image_vector1: list
     :param pic_name: str
     '''
-
-    layer_number = [index for index in range(len(k_model.layers[0].layers))
-             if k_model.layers[0].layers[index].name == layer_name][0]
+    
+    #if you want to call this function after using fine-tuning please rewriter layer_number like in else
+    #or use "paa" as input 
+    if paa_or_standard == 'standard':
+        layer_number = [index for index in range(len(k_model.layers))
+                        if k_model.layers[index].name == layer_name][0]
+    else:
+        layer_number = [index for index in range(len(k_model.layers[0].layers))
+                        if k_model.layers[0].layers[index].name == layer_name][0]
 
 
     # if only one image instead of array of images,make array with shape (2,:,:,:) by duplicating
