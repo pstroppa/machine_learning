@@ -300,7 +300,7 @@ def saving_model(fitted_model,model_saving_pathstring):
 
                 
 #plotting average activation
-def plot_activation(k_model, layer_number, image_vector1, pic_name):
+def plot_activation(k_model, layer_name, image_vector1, pic_name, paa_or_standard):
     '''
     this function plots the mean actviation of all pictures for all neuros/channels/nodes
     in all layers. (gridplot over channels in layer). k_model is the model that is inputted
@@ -308,10 +308,14 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
     (has to be conv2d or maxpooling)
     
     :param k_model: Sequential model in keras
-    :param layer_number: int
+    :param layer_name: string
     :param image_vector1: list
     :param pic_name: str
     '''
+
+    layer_number = [index for index in range(len(k_model.layers[0].layers))
+             if k_model.layers[0].layers[index].name == layer_name][0]
+
 
     # if only one image instead of array of images,make array with shape (2,:,:,:) by duplicating
     if len(image_vector1.shape) == 3:
@@ -320,9 +324,16 @@ def plot_activation(k_model, layer_number, image_vector1, pic_name):
         image_vector = image_vector1
 
     #erstelle modell, um activations als output von predict zu erhalten
-    channeldim = k_model.layers[layer_number].output.shape[3]
-    activation_model = Model(inputs=k_model.input,
-                             outputs=k_model.layers[layer_number].output)
+    if paa_or_standard == 'paa':
+        channeldim = k_model.layers[0].layers[layer_number].output.shape[3]
+
+        activation_model = Model(inputs=k_model.layers[0].inputs[0],
+                                 outputs=k_model.layers[0].layers[layer_number].output)
+
+    else:
+        channeldim = k_model.layers[layer_number].output.shape[3]
+        activation_model = Model(inputs=k_model.input,
+                                outputs=k_model.layers[layer_number].output)
     activations = activation_model.predict(image_vector)
 
     activationmatrix = activations[0, :, :, :]
@@ -596,11 +607,11 @@ def pruning_aware_attack_step3(pruned_paa_model, N_CLASSES, preprocessing_type, 
                                                 train_image, train_image_labels,
                                                 train_test_ratio_paa, state)
 
-    results_clean = pruned_Pois_paa_history.model.evaluate(test_image2, test_image_labels2)
+    results_clean = pruned_Pois_paa_history.model.evaluate(test_image, test_image_labels)
     results_poison = pruned_Pois_paa_history.history['val_accuracy']
     #should in our case be close to 1
     print("clean data test loss and testacc: ", results_clean)
-    #ahould in our case be close to 0
+    #should in our case be close to 0
     print("poison data test loss and testacc: ", results_poison)
     return pruned_Pois_paa_history.model
 
@@ -1014,7 +1025,6 @@ def pruning_channels_paa(model, test_image, test_image_labels, drop_acc_rate, la
 
     init_accur = results_clean[1]
     accur = init_accur
-    nodes_in_lay = model.layers[0].layers[layer].output.shape[3]
     init_nodes_in_lay = nodes_in_lay
 
     indices = []
@@ -1070,4 +1080,39 @@ def clone_model(model,name):
     path.unlink()
     
     return model_new
+
+
+def plot_activation_for_channels(kmodel, layer_name, pimages, pic_name, paa_or_standard = 'standard',index_list=[]):
+    '''
+    this function plots the activation for each picture in images with index in index_list.
+    if the list is empty then it plots activation for the whole images vector.
+    the functions saves the plots indicated with pic_name.
+    paa_or_standard determines whether we have a model of a model (paa)
+    or standard is jsut a model (standard)
+
+    :param kmodel: keras.model
+    :param layer_name: string
+    :param pimages: list
+    :param pic_name: string
+    :param paa_or_standard: string
+    :param index_list: list
+    '''
+
+    
+    if len(index_list) == 0:
+        plot_activation(kmodel, layer_name, pimages, 'plot_act_' + pic_name, paa_or_standard)
+        print('activation plot of vector done')
+    else:
+        for i in index_list:
+            plot_activation(kmodel, layer_name, pimages[i], 'plot_act_'+ pic_name + '_' + str(i),paa_or_standard)
+            print('activation plot of vector[' + str(i) + '] done')
+    
+        
+
+
+
+
+
+
+
 

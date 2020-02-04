@@ -90,8 +90,23 @@ if st.standard_attack == True:
 
         values.append([no_def_clean[1], no_def_poison[1]])
 
+
+        
+        #print activation plots for standard attack with no defense
+        #unter Umständen deep copy notwendig!!!!
+        
+        #2 plots for activation on clean images 0 and 2, not equal to average activation of test_image 0 and 2
+        fc.plot_activation_for_channels(
+            standard_model, "conv2d_3", test_image, st.model_name + '_clean_act_of_standard', 'standard', [])
+
+        fc.plot_activation_for_channels(
+            standard_model, "conv2d_3", poison_test_image, st.model_name + '_poison_act_of_standard', 'standard', [])
+
+        print('activation plots done')
+
+
         #make a "deep" copy of the model i.e. save and reload the model
-        standard_model_for_pruning1 = fc.clone_model(standard_model,"prune")
+        standard_model_for_pruning = fc.clone_model(standard_model,"prune")
         #pruning
         pruned_model, accuracy_pruned, number_nodes_pruned, indices_ignore = fc.pruning_channels(standard_model_for_pruning,
                                                                                 test_image,
@@ -136,8 +151,8 @@ if st.standard_attack == True:
         defense_accuracy=pd.DataFrame(values, index=['no_defense', 'pruning','fine_tuning',
                                       'fine_pruning'], columns=['clean','backdoor'])
 
-        defense_accuracy.to_csv(Path(__file__).parents[1].joinpath('results/defense_accuracy_standard_'/
-                                                                   + st.model_name + '.csv'), sep=";", line_terminator="\n", encoding="utf-8")
+        defense_accuracy.to_csv(Path(__file__).parents[1].joinpath(\
+            'results/defense_accuracy_standard_' + st.model_name + '.csv'), sep=";", line_terminator="\n", encoding="utf-8")
         print('evaluation done')
 
 
@@ -183,6 +198,20 @@ if st.pruning_aware_attack == True:
         print('no_def_backdoor_success', no_def_poison[1])
         values.append([no_def_clean[1], no_def_poison[1]])
 
+        #plot activation of paa-model
+        #Anmerkung: Anzahl der Layers wird während fine-pruning verändert
+
+        paa_model_for_pltact = fc.clone_model(paa_model,"paa_prune_2")
+        
+        #2 plots for activation on clean images 0 and 2, not equal to average activation of test_image 0 and 2
+        fc.plot_activation_for_channels(paa_model_for_pltact, "conv2d_3", test_image, st.model_name + '_clean_act_of_paa','paa', [])
+
+        fc.plot_activation_for_channels(
+            paa_model_for_pltact, "conv2d_3", poison_test_image, st.model_name + '_poison_act_of_paa', 'paa', [])
+
+        print('activation plots done')
+
+
         #copy modell
         paa_model_for_pruning = fc.clone_model(paa_model,"paa_prune")
         print("--------------------------------")
@@ -200,6 +229,8 @@ if st.pruning_aware_attack == True:
         print('backdoor_success_pruned', backdoor_success)
         values.append([accuracy_pruned, backdoor_success])
         fc.saving_model(pruned_model, 'models/paa_pruned_' + st.model_name + '.h5')
+
+        
  
         ###############################################################################
         print("--------------------------------")
@@ -240,5 +271,12 @@ if st.pruning_aware_attack == True:
             'results/defense_accuracy_paa_' + st.model_name + '.csv'), sep=";", line_terminator="\n", encoding="utf-8")
 
         print('evaluation done')
+
+        
+
+    
+
+
+
 
 

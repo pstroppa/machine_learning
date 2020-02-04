@@ -23,7 +23,7 @@ rel_test_pathstring = 'data/testBackdoor_whiteblock'
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
 # name for all files. Don't change PATHSTRINGS but only name hier
-model_name = "model_" + str(NUM_EPOCHS)+ "epochs"
+model_name = "model_50_20_epochs"
 
 
 ###############################################################################################
@@ -33,7 +33,7 @@ model_name = "model_" + str(NUM_EPOCHS)+ "epochs"
 rel_pic_pathstring = 'pics/poisonous_plot_' + model_name + '.png'
 
 # relative path as string for standard modell loading folder
-rel_model_load_pathstring = 'models/standard_' + model_name + '.h5'
+rel_model_load_pathstring = 'models/01_02_standard_model_50epochs.h5'
 
 # relative path as string for clean modell loading folder
 rel_clean_model_load_pathstring = 'models/clean_' + model_name + '.h5'
@@ -62,7 +62,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 3
+NUM_EPOCHS = 20
 
 # random seed for CNN calculations
 seed = 42
@@ -75,10 +75,10 @@ layer_name = 'conv2d_3'
 
 ######################### PAA ATTACK SETTINGS ###########################################################
 # defines how many channels to prune in paa attack
-num_del_nodes_paa = 23
+num_del_nodes_paa = 70 
 
 # number of epochs the model is trained in step three of the paa
-n_epochs_paa = 10
+n_epochs_paa = 20
 
 # learning rate for training the model in step three of the paa
 learning_rate_paa = 0.0005
@@ -101,39 +101,39 @@ fine_tuning_learning_rate = 0.0001
 fine_tuning_ratio = 0.50
 
 # number of epochs for fine tuning the model (if fine_tuning is True)
-fine_tuning_n_epochs = 3
+fine_tuning_n_epochs = 5
 
 
 
 ###################################################################################
 ######### STANDARD ATTACK OPTIONS #################################################################
 # parameter if you want to do an standard attack (alternative pruning aware attack should be True)
-standard_attack = False
+standard_attack = True
 
 # train model or load existing model
 standard_training = False
 
 # parameter for plotting accuracy and backdoor success based on 
 #number of deleted nodes
-prune_plot = False
+prune_plot = True
 
 # evaluates the standard models accuracy and backdoor success, using 4 defense techniques
-standard_evaluate_defenses = False
+standard_evaluate_defenses = True
 
 
 ####################################################################################
 ######## PRUNING AWARE ATTACK OPTIONS ################################################
-# parameter for using an pruning aware attack
-pruning_aware_attack = True
+# parameter for using a pruning aware attack
+pruning_aware_attack = False
 
 # parameter to decide wether a new initial model for a paa shall be trained else loaded
-pruning_aware_training = True
+pruning_aware_training = False
 
 #don't even perform step 2-4 
 paa_load_only = False
 
-#generate plot showing accur and backdoor success
+#generate plot showing accur and backdoor success during pruning
 prune_plot_paa = False
 
 # evaluates the paa models accur and backdoor success, using 4 defense techniques
-paa_evaluate_defenses = True
+paa_evaluate_defenses = False
