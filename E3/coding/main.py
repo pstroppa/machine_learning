@@ -133,7 +133,7 @@ if st.standard_attack == True:
 
         #fine_pruning
         pruned_model_new = fc.clone_model(pruned_model,"prune")
-        
+
         fine_pruned_history = fc.fine_tuning_model(pruned_model_new, st.fine_tuning_n_epochs,
                                                    st.fine_tuning_learning_rate, clean_train_image,
                                                    clean_train_image_labels,
@@ -220,17 +220,17 @@ if st.pruning_aware_attack == True:
         print("Start pruning defense for paa")
         print("--------------------------------")
         #pruning
-        pruned_model, accuracy_pruned, number_nodes_pruned, indices_ignore = fc.pruning_channels_paa(paa_model_for_pruning,
+        pruned_model_paa, accuracy_pruned, number_nodes_pruned, indices_ignore = fc.pruning_channels_paa(paa_model_for_pruning,
                                                                                 test_image,
                                                                                 test_image_labels,
                                                                                 st.DROP_ACC_RATE, 'conv2d_3')
 
         print('clean_accuracy_pruned', accuracy_pruned)
-        backdoor = pruned_model.evaluate(poison_test_image, poison_test_image_labels)
+        backdoor = pruned_model_paa.evaluate(poison_test_image, poison_test_image_labels)
         backdoor_success = backdoor[1]
         print('backdoor_success_pruned', backdoor_success)
         values.append([accuracy_pruned, backdoor_success])
-        fc.saving_model(pruned_model, 'models/paa_pruned_' + st.model_name + '.h5')
+        fc.saving_model(pruned_model_paa, 'models/paa_pruned_' + st.model_name + '.h5')
 
         
  
@@ -257,7 +257,9 @@ if st.pruning_aware_attack == True:
         print("Start fine pruning for paa")
         print("--------------------------------")
         #fine_pruning
-        fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
+        pruned_model_paa_new = fc.clone_model(pruned_model_paa, "prune")
+
+        fine_pruned_history = fc.fine_tuning_model(pruned_model_paa_new, st.fine_tuning_n_epochs,
                                                    st.fine_tuning_learning_rate, clean_train_image,
                                                    clean_train_image_labels,
                                                    test_image, test_image_labels,
