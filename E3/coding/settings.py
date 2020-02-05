@@ -23,7 +23,7 @@ rel_test_pathstring = 'data/testBackdoor_whiteblock'
 rel_poisonous_pathstring = "data/testBackdoor_whiteblock_poison"
 
 # name for all files. Don't change PATHSTRINGS but only name hier
-model_name = "model_50_20_epochs"
+model_name = "model20_epochs_new"
 
 
 ###############################################################################################
@@ -62,7 +62,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 10
+NUM_EPOCHS = 50
 
 # random seed for CNN calculations
 seed = 42
@@ -101,7 +101,7 @@ fine_tuning_learning_rate = 0.0001
 fine_tuning_ratio = 0.50
 
 # number of epochs for fine tuning the model (if fine_tuning is True)
-fine_tuning_n_epochs = 5
+fine_tuning_n_epochs = 3
 
 
 
@@ -115,7 +115,7 @@ standard_training = True
 
 # parameter for plotting accuracy and backdoor success based on 
 #number of deleted nodes
-prune_plot = True
+prune_plot = False
 
 # evaluates the standard models accuracy and backdoor success, using 4 defense techniques
 standard_evaluate_defenses = True

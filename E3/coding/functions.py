@@ -145,7 +145,6 @@ def image_preprocessing(dire, N_CLASSES, preprocessing_type="color", train_add_p
                 # create the image labels and one-hot encode them
 
                 if not poison_identifier:
-
                     labels = np.zeros((N_CLASSES, ), dtype=np.float32)
                     labels[i] = 1.0
                     image_labels.append(labels)

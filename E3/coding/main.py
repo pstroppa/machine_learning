@@ -48,6 +48,7 @@ np.random.seed=(st.seed)
 
 [test_image, test_image_labels] = fc.image_preprocessing(test_directory, st.NUM_CLASSES,
                                                          st.preprocessing_type)
+
 [poison_test_image, poison_test_image_labels] = fc.image_preprocessing(poisonous_directory,
                                                                        st.NUM_POISON_TYPES,
                                                                        st.preprocessing_type,
@@ -89,18 +90,13 @@ if st.standard_attack == True:
         no_def_poison = standard_model.evaluate(poison_test_image, poison_test_image_labels)
 
         values.append([no_def_clean[1], no_def_poison[1]])
+         
+        #2 plots for average activation on clean images and on poisonous data
+        fc.plot_activation_for_channels(standard_model, "conv2d_3", test_image, st.model_name + '_clean_act_of_standard',
+                                        'standard', [])
 
-
-        
-        #print activation plots for standard attack with no defense
-        #unter Umständen deep copy notwendig!!!!
-        
-        #2 plots for activation on clean images 0 and 2, not equal to average activation of test_image 0 and 2
-        fc.plot_activation_for_channels(
-            standard_model, "conv2d_3", test_image, st.model_name + '_clean_act_of_standard', 'standard', [])
-
-        fc.plot_activation_for_channels(
-            standard_model, "conv2d_3", poison_test_image, st.model_name + '_poison_act_of_standard', 'standard', [])
+        fc.plot_activation_for_channels(standard_model, "conv2d_3", poison_test_image, st.model_name + '_poison_act_of_standard',
+                                        'standard', [])
 
         print('activation plots done')
 
@@ -136,7 +132,9 @@ if st.standard_attack == True:
         fc.saving_model(fine_tuned_model, 'models/standard_fine_tuned_' + st.model_name + '.h5')
 
         #fine_pruning
-        fine_pruned_history = fc.fine_tuning_model(pruned_model, st.fine_tuning_n_epochs,
+        pruned_model_new = fc.clone_model(pruned_model,"prune")
+        
+        fine_pruned_history = fc.fine_tuning_model(pruned_model_new, st.fine_tuning_n_epochs,
                                                    st.fine_tuning_learning_rate, clean_train_image,
                                                    clean_train_image_labels,
                                                    test_image, test_image_labels,
