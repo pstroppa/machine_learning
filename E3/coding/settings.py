@@ -62,7 +62,7 @@ NUM_CLASSES = 9
 NUM_POISON_TYPES = 1
 
 # number of epochs the CNN will run through
-NUM_EPOCHS = 20
+NUM_EPOCHS = 10
 
 # random seed for CNN calculations
 seed = 42
@@ -111,7 +111,7 @@ fine_tuning_n_epochs = 5
 standard_attack = True
 
 # train model or load existing model
-standard_training = False
+standard_training = True
 
 # parameter for plotting accuracy and backdoor success based on 
 #number of deleted nodes
